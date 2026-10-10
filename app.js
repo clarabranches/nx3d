@@ -1,23 +1,22 @@
 // Importando o SDK do Firebase via CDN (Módulos)
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getFirestore, collection, addDoc, getDocs, doc, setDoc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-// COLOQUE SUAS CREDENCIAIS DO FIREBASE AQUI
+// COLOQUE AS SUAS CREDENCIAIS DO FIREBASE AQUI
 const firebaseConfig = {
-    apiKey: "AIzaSyBszG-rJmhiR4q3JleTHUPNNewNlOdPVpM",
-    authDomain: "nexo3dstm.firebaseapp.com",
-    projectId: "nexo3dstm",
-    storageBucket: "nexo3dstm.firebasestorage.app",
-    messagingSenderId: "641884862212",
-    appId: "1:641884862212:web:772228dcc3843a32154251",
-    measurementId: "G-NYRKQB9CG1"
+  apiKey: "SUA_API_KEY",
+  authDomain: "seu-projeto.firebaseapp.com",
+  projectId: "seu-projeto",
+  storageBucket: "seu-projeto.appspot.com",
+  messagingSenderId: "123456789",
+  appId: "1:123456789:web:abcdef"
 };
 
 // Inicialização Firebase
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// Variáveis Globais de Configuração baseadas na sua Planilha
+// Variáveis Globais
 let configs = {
     energia: 1.5,
     consumo: 0.21,
@@ -27,7 +26,9 @@ let configs = {
     embalagem: 1.5
 };
 
-let materiais = []; // Ex: [{cor: 'Preto', custoGrama: 0.1499}, {cor: 'Branco', custoGrama: 0.0988}]
+let materiais = []; 
+let listaDeProdutos = []; // Para guardar a lista e permitir a edição
+let produtoEmEdicaoId = null; // Controla se estamos a criar ou a editar
 
 // ==========================================
 // FUNÇÕES DE CONFIGURAÇÃO E MATERIAIS
@@ -52,7 +53,6 @@ window.salvarConfiguracoes = async function() {
     configs.margem = parseFloat(document.getElementById('cfg-margem').value);
     configs.embalagem = parseFloat(document.getElementById('cfg-embalagem').value);
 
-    // Salvar Materiais
     materiais = [];
     document.querySelectorAll('#materiais-list .filamento-row').forEach(row => {
         const cor = row.querySelector('.mat-cor').value;
@@ -63,7 +63,6 @@ window.salvarConfiguracoes = async function() {
     try {
         await setDoc(doc(db, "sistema", "configuracoes"), { configs, materiais });
         alert("Configurações salvas no Firebase!");
-        atualizarDropdownsDeCores();
     } catch (e) {
         console.error("Erro ao salvar config: ", e);
     }
@@ -78,7 +77,6 @@ window.adicionarLinhaFilamento = function() {
     const div = document.createElement('div');
     div.className = 'filamento-row form-row';
     
-    // Gerar options baseado nos materiais cadastrados
     let options = materiais.map(m => `<option value="${m.custoGrama}">${m.cor}</option>`).join('');
     
     div.innerHTML = `
@@ -97,11 +95,9 @@ window.calcularCustoProduto = function() {
     let horas = parseFloat(document.getElementById('prod-horas').value) || 0;
     let outros = parseFloat(document.getElementById('prod-outros').value) || 0;
 
-    // Custos Fixos/Hora
     let custoMaquina = horas * configs.maquina;
     let custoMaoObra = horas * configs.maoobra;
     
-    // Custos Material
     let custoMaterial = 0;
     document.querySelectorAll('#filamentos-list .filamento-row').forEach(row => {
         let custoGrama = parseFloat(row.querySelector('.prod-fil-cor').value) || 0;
@@ -109,14 +105,53 @@ window.calcularCustoProduto = function() {
         custoMaterial += (custoGrama * qtd);
     });
 
-    // Custo Total (replicando lógica da sua planilha)
     let custoTotal = custoMaterial + custoMaquina + custoMaoObra + configs.embalagem + outros;
-    
-    // Valor Sugerido (com margem)
     let sugerido = custoTotal * (1 + configs.margem);
     
     document.getElementById('prod-sugerido').value = `R$ ${sugerido.toFixed(2)}`;
     return custoTotal;
+}
+
+// === NOVA FUNÇÃO: Limpar o Formulário ===
+window.limparFormulario = function() {
+    produtoEmEdicaoId = null; // Reseta o ID para o modo "Criar Novo"
+    document.getElementById('prod-nome').value = '';
+    document.getElementById('prod-foto').value = '';
+    document.getElementById('prod-vendidos').value = '0';
+    document.getElementById('prod-horas').value = '';
+    document.getElementById('prod-qtd').value = '';
+    document.getElementById('prod-outros').value = '';
+    document.getElementById('prod-cobrado').value = '';
+    document.getElementById('prod-sugerido').value = '';
+    
+    // Limpa a lista de filamentos e adiciona uma linha em branco
+    const list = document.getElementById('filamentos-list');
+    list.innerHTML = '';
+    adicionarLinhaFilamento();
+}
+
+// === NOVA FUNÇÃO: Editar Produto ===
+window.editarProduto = function(id) {
+    // Procura o produto clicado na nossa lista global
+    const produto = listaDeProdutos.find(p => p.id === id);
+    if (!produto) return;
+
+    // Define que estamos em modo de edição
+    produtoEmEdicaoId = id;
+
+    // Preenche as caixas com os dados do produto
+    document.getElementById('prod-nome').value = produto.nome || '';
+    document.getElementById('prod-foto').value = produto.foto || '';
+    document.getElementById('prod-vendidos').value = produto.vendidos || 0;
+    document.getElementById('prod-horas').value = produto.horas || '';
+    document.getElementById('prod-qtd').value = produto.quantidade || '';
+    document.getElementById('prod-outros').value = produto.outros || '';
+    document.getElementById('prod-cobrado').value = produto.valorCobrado || '';
+
+    calcularCustoProduto();
+    
+    // Muda automaticamente para a aba do formulário
+    switchTab('novo');
 }
 
 window.salvarProduto = async function() {
@@ -132,10 +167,20 @@ window.salvarProduto = async function() {
     };
 
     try {
-        await addDoc(collection(db, "produtos"), produto);
-        alert("Produto salvo com sucesso!");
-        carregarProdutos();
-        // Limpar form...
+        if (produtoEmEdicaoId) {
+            // Se tiver um ID em edição, ATUALIZA o produto existente
+            await updateDoc(doc(db, "produtos", produtoEmEdicaoId), produto);
+            alert("Produto atualizado com sucesso!");
+        } else {
+            // Se não tiver, CRIA um produto novo
+            await addDoc(collection(db, "produtos"), produto);
+            alert("Produto novo salvo com sucesso!");
+        }
+        
+        limparFormulario(); // Limpa as caixas após salvar
+        carregarProdutos(); // Atualiza a lista
+        switchTab('produtos'); // Volta para a tela inicial
+        
     } catch (e) {
         console.error("Erro ao salvar produto: ", e);
     }
@@ -143,18 +188,23 @@ window.salvarProduto = async function() {
 
 async function carregarProdutos() {
     const grid = document.getElementById('products-list');
-    grid.innerHTML = 'Carregando...';
+    grid.innerHTML = 'A carregar...';
     
     const querySnapshot = await getDocs(collection(db, "produtos"));
     grid.innerHTML = '';
+    listaDeProdutos = []; // Limpa a lista local
     
     querySnapshot.forEach((doc) => {
         let p = doc.data();
+        p.id = doc.id; // Guarda o ID do banco de dados
+        listaDeProdutos.push(p); // Adiciona à lista global
+        
         let bgStyle = p.foto ? `background-image: url('${p.foto}'); background-color: transparent;` : '';
         let fotoContent = p.foto ? '' : 'Foto';
         
+        // Adicionamos o evento onclick para editar ao clicar no cartão
         grid.innerHTML += `
-            <div class="product-card">
+            <div class="product-card" onclick="editarProduto('${p.id}')" style="cursor: pointer;" title="Clique para editar">
                 <div class="product-image" style="${bgStyle}">${fotoContent}</div>
                 <div class="product-info">
                     <h3>${p.nome || 'Sem Nome'}</h3>
@@ -166,7 +216,6 @@ async function carregarProdutos() {
     });
 }
 
-// Inicialização: Carregar Configurações e Produtos ao abrir o site
 async function init() {
     const docRef = doc(db, "sistema", "configuracoes");
     const docSnap = await getDoc(docRef);
@@ -176,7 +225,6 @@ async function init() {
         if(data.configs) configs = data.configs;
         if(data.materiais) materiais = data.materiais;
         
-        // Popular form de config
         document.getElementById('cfg-energia').value = configs.energia;
         document.getElementById('cfg-consumo').value = configs.consumo;
         document.getElementById('cfg-maquina').value = configs.maquina;
@@ -186,15 +234,11 @@ async function init() {
 
         materiais.forEach(m => adicionarLinhaMaterial(m.cor, m.custoGrama));
     } else {
-        adicionarLinhaMaterial(); // Cria linha vazia
+        adicionarLinhaMaterial(); 
     }
     
+    limparFormulario(); // Garante que a tela de cadastro inicie limpa
     carregarProdutos();
-}
-
-// Expõe a função para o HTML poder chamar globalmente
-window.atualizarDropdownsDeCores = function() {
-    // Atualiza os selects caso os materiais tenham mudado
 }
 
 init();
