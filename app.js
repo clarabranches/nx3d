@@ -77,10 +77,13 @@ window.adicionarLinhaFilamento = function(corSelecionada = "0", qtdSeta = "") {
     const div = document.createElement('div');
     div.className = 'filamento-row form-row';
     
-    // Gera as opções baseadas nos materiais configurados
+    // Converte os valores para string para garantir a comparação correta
+    const corSelecionadaStr = corSelecionada.toString();
+
     let options = materiais.map(m => {
-        // Verifica se esta é a cor que deve estar selecionada ao carregar
-        let selected = (m.custoGrama.toString() === corSelecionada.toString()) ? "selected" : "";
+        const custoStr = m.custoGrama.toString();
+        // Marca como 'selected' se o valor guardado bater com o valor da opção
+        let selected = (custoStr === corSelecionadaStr) ? "selected" : "";
         return `<option value="${m.custoGrama}" ${selected}>${m.cor}</option>`;
     }).join('');
     
