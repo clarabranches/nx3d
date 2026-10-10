@@ -314,3 +314,4 @@ async function initConfiguracoes() {
 limparFormulario();
 initConfiguracoes();
 carregarProdutos();
+adicionarLinhaMaterial(); 
