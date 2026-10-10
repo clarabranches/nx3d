@@ -77,8 +77,15 @@ window.adicionarLinhaFilamento = function(corSelecionada = "0", qtdSeta = "") {
     const div = document.createElement('div');
     div.className = 'filamento-row form-row';
     
-    // Gerar options baseado nos materiais cadastrados
-    let options = materiais.map(m => `<option value="${m.custoGrama}">${m.cor}</option>`).join('');
+    // Converte os valores para string para garantir a comparação correta
+    const corSelecionadaStr = corSelecionada.toString();
+
+    let options = materiais.map(m => {
+        const custoStr = m.custoGrama.toString();
+        // Marca como 'selected' se o valor guardado bater com o valor da opção
+        let selected = (custoStr === corSelecionadaStr) ? "selected" : "";
+        return `<option value="${m.custoGrama}" ${selected}>${m.cor}</option>`;
+    }).join('');
     
     div.innerHTML = `
         <div class="input-group">
@@ -87,7 +94,7 @@ window.adicionarLinhaFilamento = function(corSelecionada = "0", qtdSeta = "") {
                 ${options}
             </select>
         </div>
-        <div class="input-group"><input type="number" step="0.1" placeholder="Quantidade (g)" class="prod-fil-qtd" oninput="calcularCustoProduto()"></div>
+        <div class="input-group"><input type="number" step="0.1" placeholder="Quantidade (g)" value="${qtdSeta}" class="prod-fil-qtd" oninput="calcularCustoProduto()"></div>
     `;
     list.appendChild(div);
 }
