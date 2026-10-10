@@ -48,25 +48,33 @@
                 <button id="nav-novo" class="icon-btn" onclick="switchTab('novo')"><i class="fas fa-plus-square"></i></button>
                 <button id="nav-config" class="icon-btn" onclick="switchTab('config')"><i class="fas fa-cog"></i></button>
             </div>
-            <div class="search-bar" id="search-container" style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
-                <!-- Select de filtro por tipo -->
-                <select id="search-tipo" onchange="filtrarProdutos()" style="padding: 5px; border-radius: 4px; border: none; outline: none; background: transparent; color: #fff;">
-                    <option value="todos" style="color: #000;">Todos os Tipos</option>
-                </select>
-                
-                <!-- NOVO: Select de Ordenação -->
-                <select id="sort-tipo" onchange="filtrarProdutos()" style="padding: 5px; border-radius: 4px; border: none; outline: none; background: transparent; color: #fff;">
-                    <option value="padrao" style="color: #000;">Ordenar por...</option>
-                    <option value="lucro-maior" style="color: #000;">Maior Lucro</option>
-                    <option value="preco-maior" style="color: #000;">Maior Preço</option>
-                    <option value="preco-menor" style="color: #000;">Menor Preço</option>
-                </select>
-
-                <!-- Input de pesquisa textual -->
-                <div style="display: flex; align-items: center; background: rgba(255,255,255,0.2); border-radius: 4px; padding: 0 10px;">
-                    <i class="fas fa-search" style="color: #fff;"></i>
-                    <input type="text" id="search-input" placeholder="Buscar produto ou código..." oninput="filtrarProdutos()" style="background: transparent; border: none; color: #fff; padding: 5px; outline: none; margin-left: 5px;">
+            <div class="search-bar" id="search-container">
+                <div class="search-bar-left">
+                    <!-- Ícone de Filtro -->
+                    <div class="icon-select-wrapper" title="Filtrar por Tipo">
+                        <i class="fas fa-filter"></i>
+                        <select id="search-tipo" onchange="filtrarProdutos()">
+                            <option value="todos">Todos os Tipos</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Ícone de Ordenação -->
+                    <div class="icon-select-wrapper" title="Ordenar Produtos">
+                        <i class="fas fa-sort-amount-down"></i>
+                        <select id="sort-tipo" onchange="filtrarProdutos()">
+                            <option value="padrao">Ordenar por...</option>
+                            <option value="lucro-maior">Maior Lucro</option>
+                            <option value="preco-maior">Maior Preço</option>
+                            <option value="preco-menor">Menor Preço</option>
+                        </select>
+                    </div>
                 </div>
+
+                <!-- Input Centralizado -->
+                <input type="text" id="search-input" placeholder="Texto de Pesquisa" oninput="filtrarProdutos()">
+                
+                <!-- Ícone de Lupa -->
+                <i class="fas fa-search search-icon-right"></i>
             </div>
         </header>
 
