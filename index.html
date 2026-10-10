@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <!-- Firebase SDK (Módulos) -->
     <script type="module" src="app.js" defer></script>
+    <link rel="icon" type="image/png" href="logonx3.png">
 </head>
 <body>
     <div class="app-container">
@@ -16,7 +17,7 @@
         <header class="top-bar">
             <div class="nav-icons">
                 <button id="nav-produtos" class="icon-btn active" onclick="switchTab('produtos')"><i class="fas fa-box"></i></button>
-                <button id="nav-novo" class="icon-btn" onclick="switchTab('novo')"><i class="fas fa-plus-square"></i></button>
+                <button id="nav-novo" class="icon-btn" onclick="limparFormulario(); switchTab('novo')"><i class="fas fa-plus-square"></i></button>
                 <button id="nav-config" class="icon-btn" onclick="switchTab('config')"><i class="fas fa-cog"></i></button>
             </div>
             <div class="search-bar" id="search-container">
@@ -37,7 +38,7 @@
             <div class="form-container">
                 <div class="form-header-actions">
                     <button class="action-btn save-btn" onclick="salvarProduto()"><i class="fas fa-save"></i></button>
-                    <button class="action-btn clear-btn"><i class="fas fa-eraser"></i></button>
+                    <button class="action-btn clear-btn" onclick="limparFormulario()"><i class="fas fa-eraser"></i></button>
                 </div>
                 
                 <div class="form-row">
