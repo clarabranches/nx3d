@@ -13,11 +13,9 @@ const firebaseConfig = {
     measurementId: "G-NYRKQB9CG1"
 };
 
-// Inicialização Firebase
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// Variáveis Globais
 let configs = {
     energia: 1.5,
     consumo: 0.21,
@@ -28,11 +26,11 @@ let configs = {
 };
 
 let materiais = []; 
-let listaDeProdutos = []; // Para guardar a lista e permitir a edição
-let produtoEmEdicaoId = null; // Controla se estamos a criar ou a editar
+let listaDeProdutos = []; 
+let produtoEmEdicaoId = null; 
 
 // ==========================================
-// FUNÇÕES DE CONFIGURAÇÃO E MATERIAIS
+// CONFIGURAÇÕES E MATERIAIS
 // ==========================================
 
 window.adicionarLinhaMaterial = function(cor = "", valor = "") {
@@ -70,15 +68,21 @@ window.salvarConfiguracoes = async function() {
 }
 
 // ==========================================
-// FUNÇÕES DE PRODUTO E CÁLCULO
+// PRODUTOS
 // ==========================================
 
-window.adicionarLinhaFilamento = function() {
+// Modificado para aceitar valores ao editar
+window.adicionarLinhaFilamento = function(corSelecionada = "0", qtdSeta = "") {
     const list = document.getElementById('filamentos-list');
     const div = document.createElement('div');
     div.className = 'filamento-row form-row';
     
-    let options = materiais.map(m => `<option value="${m.custoGrama}">${m.cor}</option>`).join('');
+    // Gera as opções baseadas nos materiais configurados
+    let options = materiais.map(m => {
+        // Verifica se esta é a cor que deve estar selecionada ao carregar
+        let selected = (m.custoGrama.toString() === corSelecionada.toString()) ? "selected" : "";
+        return `<option value="${m.custoGrama}" ${selected}>${m.cor}</option>`;
+    }).join('');
     
     div.innerHTML = `
         <div class="input-group">
@@ -87,7 +91,7 @@ window.adicionarLinhaFilamento = function() {
                 ${options}
             </select>
         </div>
-        <div class="input-group"><input type="number" step="0.1" placeholder="Quantidade (g)" class="prod-fil-qtd" oninput="calcularCustoProduto()"></div>
+        <div class="input-group"><input type="number" step="0.1" placeholder="Quantidade (g)" value="${qtdSeta}" class="prod-fil-qtd" oninput="calcularCustoProduto()"></div>
     `;
     list.appendChild(div);
 }
@@ -113,9 +117,10 @@ window.calcularCustoProduto = function() {
     return custoTotal;
 }
 
-// === NOVA FUNÇÃO: Limpar o Formulário ===
 window.limparFormulario = function() {
-    produtoEmEdicaoId = null; // Reseta o ID para o modo "Criar Novo"
+    produtoEmEdicaoId = null; 
+    document.getElementById('btn-excluir').style.display = 'none'; // Esconde botão excluir
+
     document.getElementById('prod-nome').value = '';
     document.getElementById('prod-foto').value = '';
     document.getElementById('prod-vendidos').value = '0';
@@ -125,22 +130,18 @@ window.limparFormulario = function() {
     document.getElementById('prod-cobrado').value = '';
     document.getElementById('prod-sugerido').value = '';
     
-    // Limpa a lista de filamentos e adiciona uma linha em branco
     const list = document.getElementById('filamentos-list');
     list.innerHTML = '';
-    adicionarLinhaFilamento();
+    adicionarLinhaFilamento(); // Cria uma linha vazia
 }
 
-// === NOVA FUNÇÃO: Editar Produto ===
 window.editarProduto = function(id) {
-    // Procura o produto clicado na nossa lista global
     const produto = listaDeProdutos.find(p => p.id === id);
     if (!produto) return;
 
-    // Define que estamos em modo de edição
     produtoEmEdicaoId = id;
+    document.getElementById('btn-excluir').style.display = 'block'; // Mostra botão excluir
 
-    // Preenche as caixas com os dados do produto
     document.getElementById('prod-nome').value = produto.nome || '';
     document.getElementById('prod-foto').value = produto.foto || '';
     document.getElementById('prod-vendidos').value = produto.vendidos || 0;
@@ -149,13 +150,53 @@ window.editarProduto = function(id) {
     document.getElementById('prod-outros').value = produto.outros || '';
     document.getElementById('prod-cobrado').value = produto.valorCobrado || '';
 
+    // Limpa a lista atual de filamentos
+    const list = document.getElementById('filamentos-list');
+    list.innerHTML = '';
+
+    // Se o produto tiver filamentos salvos, recria as linhas preenchidas
+    if (produto.filamentosUsados && produto.filamentosUsados.length > 0) {
+        produto.filamentosUsados.forEach(f => {
+            adicionarLinhaFilamento(f.custoGrama, f.quantidade);
+        });
+    } else {
+        adicionarLinhaFilamento(); // Linha vazia se não tiver nada
+    }
+
     calcularCustoProduto();
-    
-    // Muda automaticamente para a aba do formulário
     switchTab('novo');
 }
 
+// === NOVA FUNÇÃO: Excluir Produto ===
+window.excluirProduto = async function() {
+    if (!produtoEmEdicaoId) return;
+
+    const confirmacao = confirm("Tem certeza que deseja apagar este produto definitivamente?");
+    if (confirmacao) {
+        try {
+            await deleteDoc(doc(db, "produtos", produtoEmEdicaoId));
+            alert("Produto excluído com sucesso!");
+            limparFormulario();
+            carregarProdutos();
+            switchTab('produtos');
+        } catch (error) {
+            console.error("Erro ao excluir produto:", error);
+            alert("Erro ao excluir.");
+        }
+    }
+}
+
 window.salvarProduto = async function() {
+    // Recolher as informações dos filamentos preenchidos
+    let filamentosUsados = [];
+    document.querySelectorAll('#filamentos-list .filamento-row').forEach(row => {
+        let custoGrama = parseFloat(row.querySelector('.prod-fil-cor').value) || 0;
+        let qtd = parseFloat(row.querySelector('.prod-fil-qtd').value) || 0;
+        if (custoGrama > 0 && qtd > 0) {
+            filamentosUsados.push({ custoGrama: custoGrama, quantidade: qtd });
+        }
+    });
+
     const produto = {
         nome: document.getElementById('prod-nome').value,
         foto: document.getElementById('prod-foto').value,
@@ -164,23 +205,22 @@ window.salvarProduto = async function() {
         quantidade: parseInt(document.getElementById('prod-qtd').value) || 0,
         outros: parseFloat(document.getElementById('prod-outros').value) || 0,
         valorCobrado: parseFloat(document.getElementById('prod-cobrado').value) || 0,
-        custoCalculado: calcularCustoProduto()
+        custoCalculado: calcularCustoProduto(),
+        filamentosUsados: filamentosUsados // Salva as cores no Firebase
     };
 
     try {
         if (produtoEmEdicaoId) {
-            // Se tiver um ID em edição, ATUALIZA o produto existente
             await updateDoc(doc(db, "produtos", produtoEmEdicaoId), produto);
             alert("Produto atualizado com sucesso!");
         } else {
-            // Se não tiver, CRIA um produto novo
             await addDoc(collection(db, "produtos"), produto);
             alert("Produto novo salvo com sucesso!");
         }
         
-        limparFormulario(); // Limpa as caixas após salvar
-        carregarProdutos(); // Atualiza a lista
-        switchTab('produtos'); // Volta para a tela inicial
+        limparFormulario();
+        carregarProdutos();
+        switchTab('produtos');
         
     } catch (e) {
         console.error("Erro ao salvar produto: ", e);
@@ -191,59 +231,35 @@ async function carregarProdutos() {
     const grid = document.getElementById('products-list');
     grid.innerHTML = 'A carregar...';
     
-    const querySnapshot = await getDocs(collection(db, "produtos"));
-    grid.innerHTML = '';
-    listaDeProdutos = []; // Limpa a lista local
-    
-    querySnapshot.forEach((doc) => {
-        let p = doc.data();
-        p.id = doc.id; // Guarda o ID do banco de dados
-        listaDeProdutos.push(p); // Adiciona à lista global
+    try {
+        const querySnapshot = await getDocs(collection(db, "produtos"));
+        grid.innerHTML = '';
+        listaDeProdutos = []; 
         
-        let bgStyle = p.foto ? `background-image: url('${p.foto}'); background-color: transparent;` : '';
-        let fotoContent = p.foto ? '' : 'Foto';
-        
-        // Adicionamos o evento onclick para editar ao clicar no cartão
-        grid.innerHTML += `
-            <div class="product-card" onclick="editarProduto('${p.id}')" style="cursor: pointer;" title="Clique para editar">
-                <div class="product-image" style="${bgStyle}">${fotoContent}</div>
-                <div class="product-info">
-                    <h3>${p.nome || 'Sem Nome'}</h3>
-                    <div class="price">R$ ${p.valorCobrado.toFixed(2)}</div>
-                    <div class="sales">${p.vendidos} Quantidades Vendidas</div>
+        querySnapshot.forEach((doc) => {
+            let p = doc.data();
+            p.id = doc.id; 
+            listaDeProdutos.push(p); 
+            
+            let bgStyle = p.foto ? `background-image: url('${p.foto}'); background-color: transparent;` : '';
+            let fotoContent = p.foto ? '' : 'Foto';
+            
+            grid.innerHTML += `
+                <div class="product-card" onclick="editarProduto('${p.id}')" style="cursor: pointer;" title="Clique para editar">
+                    <div class="product-image" style="${bgStyle}">${fotoContent}</div>
+                    <div class="product-info">
+                        <h3>${p.nome || 'Sem Nome'}</h3>
+                        <div class="price">R$ ${(p.valorCobrado || 0).toFixed(2)}</div>
+                        <div class="sales">${p.vendidos} Quantidades Vendidas</div>
+                    </div>
                 </div>
-            </div>
-        `;
-    });
-}
-
-async function init() {
-    const docRef = doc(db, "sistema", "configuracoes");
-    const docSnap = await getDoc(docRef);
-    
-    if (docSnap.exists()) {
-        const data = docSnap.data();
-        if(data.configs) configs = data.configs;
-        if(data.materiais) materiais = data.materiais;
-        
-        document.getElementById('cfg-energia').value = configs.energia;
-        document.getElementById('cfg-consumo').value = configs.consumo;
-        document.getElementById('cfg-maquina').value = configs.maquina;
-        document.getElementById('cfg-maoobra').value = configs.maoobra;
-        document.getElementById('cfg-margem').value = configs.margem;
-        document.getElementById('cfg-embalagem').value = configs.embalagem;
-
-        materiais.forEach(m => adicionarLinhaMaterial(m.cor, m.custoGrama));
-    } else {
-        adicionarLinhaMaterial(); 
+            `;
+        });
+    } catch (e) {
+        console.error("Erro ao carregar produtos:", e);
+        grid.innerHTML = 'Erro ao carregar os produtos.';
     }
-    
-    limparFormulario(); // Garante que a tela de cadastro inicie limpa
-    carregarProdutos();
 }
-
-// Removemos a chamada de carregarProdutos() de dentro do init() 
-// para que as coisas não dependam uma da outra e não travem.
 
 async function initConfiguracoes() {
     try {
@@ -271,7 +287,6 @@ async function initConfiguracoes() {
     }
 }
 
-// Inicializa as duas coisas separadamente assim que a página abre
 limparFormulario();
 initConfiguracoes();
 carregarProdutos();
