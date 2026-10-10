@@ -77,20 +77,20 @@ window.adicionarLinhaFilamento = function(corSelecionada = "0", qtdSeta = "") {
     const div = document.createElement('div');
     div.className = 'filamento-row form-row';
     
-    // Converte os valores para string para garantir a comparação correta
+    // Converte para string para garantir a comparação
     const corSelecionadaStr = corSelecionada.toString();
 
     let options = materiais.map(m => {
-        const custoStr = m.custoGrama.toString();
-        // Marca como 'selected' se o valor guardado bater com o valor da opção
-        let selected = (custoStr === corSelecionadaStr) ? "selected" : "";
-        return `<option value="${m.custoGrama}" ${selected}>${m.cor}</option>`;
+        // Agora comparamos pelo NOME DA COR e não pelo custo
+        let selected = (m.cor === corSelecionadaStr) ? "selected" : "";
+        // O value passa a ser o nome da cor, e guardamos o custo num atributo extra
+        return `<option value="${m.cor}" data-custo="${m.custoGrama}" ${selected}>${m.cor}</option>`;
     }).join('');
     
     div.innerHTML = `
         <div class="input-group">
             <select class="prod-fil-cor" onchange="calcularCustoProduto()">
-                <option value="0">Selecione a cor</option>
+                <option value="0" data-custo="0">Selecione a cor</option>
                 ${options}
             </select>
         </div>
@@ -109,35 +109,34 @@ window.calcularCustoProduto = function() {
     
     let custoMaterial = 0;
     document.querySelectorAll('#filamentos-list .filamento-row').forEach(row => {
-        let custoGrama = parseFloat(row.querySelector('.prod-fil-cor').value) || 0;
+        const selectCor = row.querySelector('.prod-fil-cor');
+        // Busca a opção selecionada
+        const opcaoSelecionada = selectCor.options[selectCor.selectedIndex];
+        // Pega o custo do atributo data-custo
+        let custoGrama = parseFloat(opcaoSelecionada.getAttribute('data-custo')) || 0;
         let qtd = parseFloat(row.querySelector('.prod-fil-qtd').value) || 0;
         custoMaterial += (custoGrama * qtd);
     });
 
-    // Calcula o custo total real
+    // ... restante da função permanece igual ...
     let custoTotal = custoMaterial + custoMaquina + custoMaoObra + configs.embalagem + outros;
-    
-    // Calcula a sugestão com a margem
     let sugerido = custoTotal * (1 + configs.margem);
-    
-    // Calcula o lucro baseado no que você informou no campo "Valor Cobrado"
     let lucro = valorCobrado - custoTotal;
     
-    // Atualiza os campos na tela
     document.getElementById('prod-custo-total').value = `R$ ${custoTotal.toFixed(2)}`;
     document.getElementById('prod-sugerido').value = `R$ ${sugerido.toFixed(2)}`;
     
-    // Atualiza o lucro (mostra cor vermelha se der prejuízo)
     const lucroInput = document.getElementById('prod-lucro');
     lucroInput.value = `R$ ${lucro.toFixed(2)}`;
     if (lucro < 0) {
-        lucroInput.style.color = '#d32f2f'; // Vermelho
+        lucroInput.style.color = '#d32f2f'; 
     } else {
-        lucroInput.style.color = '#2e7d32'; // Verde
+        lucroInput.style.color = '#2e7d32'; 
     }
 
     return custoTotal;
 }
+
 
 window.limparFormulario = function() {
     produtoEmEdicaoId = null; 
