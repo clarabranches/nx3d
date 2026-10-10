@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexo 3D - Gestão</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- FontAwesome para os ícones -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Firebase SDK (Módulos) -->
+    <script type="module" src="app.js" defer></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Top Navigation Bar -->
+        <header class="top-bar">
+            <div class="nav-icons">
+                <button id="nav-produtos" class="icon-btn active" onclick="switchTab('produtos')"><i class="fas fa-box"></i></button>
+                <button id="nav-novo" class="icon-btn" onclick="switchTab('novo')"><i class="fas fa-plus-square"></i></button>
+                <button id="nav-config" class="icon-btn" onclick="switchTab('config')"><i class="fas fa-cog"></i></button>
+            </div>
+            <div class="search-bar" id="search-container">
+                <i class="fas fa-search"></i>
+                <input type="text" placeholder="Buscar produto...">
+            </div>
+        </header>
+
+        <!-- PÁGINA 1: Lista de Produtos -->
+        <main id="tab-produtos" class="tab-content active">
+            <div class="products-grid" id="products-list">
+                <!-- Os produtos serão gerados aqui via JavaScript -->
+            </div>
+        </main>
+
+        <!-- PÁGINA 2: Cadastro / Edição de Produtos -->
+        <main id="tab-novo" class="tab-content">
+            <div class="form-container">
+                <div class="form-header-actions">
+                    <button class="action-btn save-btn" onclick="salvarProduto()"><i class="fas fa-save"></i></button>
+                    <button class="action-btn clear-btn"><i class="fas fa-eraser"></i></button>
+                </div>
+                
+                <div class="form-row">
+                    <div class="input-group grow-2">
+                        <label>Foto URL:</label>
+                        <input type="text" id="prod-foto" placeholder="Link da imagem">
+                    </div>
+                    <div class="input-group counter-group">
+                        <label>Produtos Vendidos</label>
+                        <div class="counter">
+                            <button onclick="updateVendas(-1)"><i class="fas fa-minus-circle"></i></button>
+                            <input type="number" id="prod-vendidos" value="0">
+                            <button onclick="updateVendas(1)"><i class="fas fa-plus-circle"></i></button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label>Nome do Produto:</label>
+                    <input type="text" id="prod-nome">
+                </div>
+
+                <div class="form-row">
+                    <div class="input-group">
+                        <label>Horas de Impressão (Ex: 1.5):</label>
+                        <input type="number" step="0.01" id="prod-horas" oninput="calcularCustoProduto()">
+                    </div>
+                    <div class="input-group">
+                        <label>Quantidade em Estoque:</label>
+                        <input type="number" id="prod-qtd">
+                    </div>
+                </div>
+
+                <div class="card-section">
+                    <h4>Filamentos Utilizados</h4>
+                    <div id="filamentos-list">
+                        <!-- Linhas de filamento serão adicionadas aqui -->
+                    </div>
+                    <button class="add-circle-btn" onclick="adicionarLinhaFilamento()"><i class="fas fa-plus-circle"></i></button>
+                </div>
+
+                <div class="form-row">
+                    <div class="input-group">
+                        <label>Outros Valores (R$):</label>
+                        <input type="number" step="0.01" id="prod-outros" oninput="calcularCustoProduto()">
+                    </div>
+                    <div class="input-group readonly">
+                        <label>Valor Calculado Sugerido:</label>
+                        <input type="text" id="prod-sugerido" readonly>
+                    </div>
+                    <div class="input-group highlight">
+                        <label>Valor de Venda (Cobrado):</label>
+                        <input type="number" step="0.01" id="prod-cobrado">
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- PÁGINA 3: Configurações e Custos Base -->
+        <main id="tab-config" class="tab-content">
+            <div class="form-container">
+                <div class="form-header-actions">
+                    <button class="action-btn save-btn" onclick="salvarConfiguracoes()"><i class="fas fa-save"></i></button>
+                </div>
+                
+                <div class="form-row">
+                    <div class="input-group">
+                        <label>Energia elétrica (R$/kWh):</label>
+                        <input type="number" step="0.001" id="cfg-energia" value="1.500">
+                    </div>
+                    <div class="input-group">
+                        <label>Consumo médio da impressora (kW):</label>
+                        <input type="number" step="0.001" id="cfg-consumo" value="0.210">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="input-group">
+                        <label>Custo da máquina/hora (R$):</label>
+                        <input type="number" step="0.001" id="cfg-maquina" value="0.315">
+                    </div>
+                    <div class="input-group">
+                        <label>Mão de obra/hora (R$):</label>
+                        <input type="number" step="0.01" id="cfg-maoobra" value="5.00">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="input-group">
+                        <label>Margem de lucro (Ex: 0.4 para 40%):</label>
+                        <input type="number" step="0.01" id="cfg-margem" value="0.40">
+                    </div>
+                    <div class="input-group">
+                        <label>Embalagem por peça (R$):</label>
+                        <input type="number" step="0.01" id="cfg-embalagem" value="1.50">
+                    </div>
+                </div>
+
+                <div class="card-section">
+                    <h4>Estoque de Filamentos (Matéria Prima)</h4>
+                    <div id="materiais-list">
+                        <!-- Materiais configurados aqui -->
+                    </div>
+                    <button class="add-circle-btn" onclick="adicionarLinhaMaterial()"><i class="fas fa-plus-circle"></i></button>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <script>
+        // Funções simples de UI que não dependem de módulo
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.icon-btn').forEach(el => el.classList.remove('active'));
+            
+            document.getElementById('tab-' + tabId).classList.add('active');
+            document.getElementById('nav-' + tabId).classList.add('active');
+
+            const searchBar = document.getElementById('search-container');
+            if(tabId === 'produtos') {
+                searchBar.style.visibility = 'visible';
+            } else {
+                searchBar.style.visibility = 'hidden';
+            }
+        }
+        
+        function updateVendas(val) {
+            let input = document.getElementById('prod-vendidos');
+            let current = parseInt(input.value) || 0;
+            if(current + val >= 0) {
+                input.value = current + val;
+            }
+        }
+    </script>
+</body>
+</html>
