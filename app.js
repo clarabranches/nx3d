@@ -71,19 +71,15 @@ window.salvarConfiguracoes = async function() {
 // PRODUTOS
 // ==========================================
 
-// Modificado para aceitar valores ao editar
 window.adicionarLinhaFilamento = function(corSelecionada = "0", qtdSeta = "") {
     const list = document.getElementById('filamentos-list');
     const div = document.createElement('div');
     div.className = 'filamento-row form-row';
     
-    // Converte para string para garantir a comparação
     const corSelecionadaStr = corSelecionada.toString();
 
     let options = materiais.map(m => {
-        // Agora comparamos pelo NOME DA COR e não pelo custo
         let selected = (m.cor === corSelecionadaStr) ? "selected" : "";
-        // O value passa a ser o nome da cor, e guardamos o custo num atributo extra
         return `<option value="${m.cor}" data-custo="${m.custoGrama}" ${selected}>${m.cor}</option>`;
     }).join('');
     
@@ -110,15 +106,12 @@ window.calcularCustoProduto = function() {
     let custoMaterial = 0;
     document.querySelectorAll('#filamentos-list .filamento-row').forEach(row => {
         const selectCor = row.querySelector('.prod-fil-cor');
-        // Busca a opção selecionada
         const opcaoSelecionada = selectCor.options[selectCor.selectedIndex];
-        // Pega o custo do atributo data-custo
         let custoGrama = parseFloat(opcaoSelecionada.getAttribute('data-custo')) || 0;
         let qtd = parseFloat(row.querySelector('.prod-fil-qtd').value) || 0;
         custoMaterial += (custoGrama * qtd);
     });
 
-    // ... restante da função permanece igual ...
     let custoTotal = custoMaterial + custoMaquina + custoMaoObra + configs.embalagem + outros;
     let sugerido = custoTotal * (1 + configs.margem);
     let lucro = valorCobrado - custoTotal;
@@ -137,10 +130,9 @@ window.calcularCustoProduto = function() {
     return custoTotal;
 }
 
-
 window.limparFormulario = function() {
     produtoEmEdicaoId = null; 
-    document.getElementById('btn-excluir').style.display = 'none'; // Esconde botão excluir
+    document.getElementById('btn-excluir').style.display = 'none';
 
     document.getElementById('prod-nome').value = '';
     document.getElementById('prod-foto').value = '';
@@ -152,10 +144,11 @@ window.limparFormulario = function() {
     document.getElementById('prod-sugerido').value = '';
     document.getElementById('prod-custo-total').value = '';
     document.getElementById('prod-lucro').value = '';
+    document.getElementById('prod-licenca').value = 'sim'; // Reseta licença para sim
     
     const list = document.getElementById('filamentos-list');
     list.innerHTML = '';
-    adicionarLinhaFilamento(); // Cria uma linha vazia
+    adicionarLinhaFilamento(); 
 }
 
 window.editarProduto = function(id) {
@@ -163,7 +156,7 @@ window.editarProduto = function(id) {
     if (!produto) return;
 
     produtoEmEdicaoId = id;
-    document.getElementById('btn-excluir').style.display = 'block'; // Mostra botão excluir
+    document.getElementById('btn-excluir').style.display = 'block'; 
 
     document.getElementById('prod-nome').value = produto.nome || '';
     document.getElementById('prod-foto').value = produto.foto || '';
@@ -172,26 +165,24 @@ window.editarProduto = function(id) {
     document.getElementById('prod-qtd').value = produto.quantidade || '';
     document.getElementById('prod-outros').value = produto.outros || '';
     document.getElementById('prod-cobrado').value = produto.valorCobrado || '';
+    // Carrega o valor da licença (se não existir, por padrão "sim")
+    document.getElementById('prod-licenca').value = produto.licenca || 'sim';
 
-    // Limpa a lista atual de filamentos
     const list = document.getElementById('filamentos-list');
     list.innerHTML = '';
 
-    // Se o produto tiver filamentos salvos, recria as linhas preenchidas
     if (produto.filamentosUsados && produto.filamentosUsados.length > 0) {
         produto.filamentosUsados.forEach(f => {
-            // Agora passamos f.cor em vez de f.custoGrama
             adicionarLinhaFilamento(f.cor, f.quantidade);
         });
     } else {
-        adicionarLinhaFilamento(); // Linha vazia se não tiver nada
+        adicionarLinhaFilamento(); 
     }
 
     calcularCustoProduto();
     switchTab('novo');
 }
 
-// === NOVA FUNÇÃO: Excluir Produto ===
 window.excluirProduto = async function() {
     if (!produtoEmEdicaoId) return;
 
@@ -216,12 +207,11 @@ window.salvarProduto = async function() {
         const selectCor = row.querySelector('.prod-fil-cor');
         const opcaoSelecionada = selectCor.options[selectCor.selectedIndex];
         
-        let nomeCor = selectCor.value; // Agora o value é o nome
+        let nomeCor = selectCor.value; 
         let custoGrama = parseFloat(opcaoSelecionada.getAttribute('data-custo')) || 0;
         let qtd = parseFloat(row.querySelector('.prod-fil-qtd').value) || 0;
         
         if (nomeCor !== "0" && qtd > 0) {
-            // Salvamos o nome da cor e a quantidade
             filamentosUsados.push({ cor: nomeCor, custoGrama: custoGrama, quantidade: qtd });
         }
     });
@@ -234,8 +224,9 @@ window.salvarProduto = async function() {
         quantidade: parseInt(document.getElementById('prod-qtd').value) || 0,
         outros: parseFloat(document.getElementById('prod-outros').value) || 0,
         valorCobrado: parseFloat(document.getElementById('prod-cobrado').value) || 0,
+        licenca: document.getElementById('prod-licenca').value, // Salva a licença ('sim' ou 'nao')
         custoCalculado: calcularCustoProduto(),
-        filamentosUsados: filamentosUsados // Salva as cores no Firebase
+        filamentosUsados: filamentosUsados 
     };
 
     try {
@@ -273,10 +264,19 @@ async function carregarProdutos() {
             let bgStyle = p.foto ? `background-image: url('${p.foto}'); background-color: transparent;` : '';
             let fotoContent = p.foto ? '' : 'Foto';
             
+            // Determina qual tag de licença mostrar
+            let tagLicencaHTML = '';
+            if (p.licenca === 'nao') {
+                tagLicencaHTML = '<span class="tag-licenca tag-sem-licenca"><i class="fas fa-ban"></i> Uso Pessoal</span>';
+            } else {
+                tagLicencaHTML = '<span class="tag-licenca tag-comercial"><i class="fas fa-check-circle"></i> Venda Liberada</span>';
+            }
+            
             grid.innerHTML += `
                 <div class="product-card" onclick="editarProduto('${p.id}')" style="cursor: pointer;" title="Clique para editar">
                     <div class="product-image" style="${bgStyle}">${fotoContent}</div>
                     <div class="product-info">
+                        ${tagLicencaHTML}
                         <h3>${p.nome || 'Sem Nome'}</h3>
                         <div class="price">R$ ${(p.valorCobrado || 0).toFixed(2)}</div>
                         <div class="sales">${p.vendidos} Quantidades Vendidas</div>
@@ -319,4 +319,3 @@ async function initConfiguracoes() {
 limparFormulario();
 initConfiguracoes();
 carregarProdutos();
-adicionarLinhaMaterial(); 
