@@ -10,6 +10,28 @@
     <!-- Firebase SDK (Módulos) -->
     <script type="module" src="app.js" defer></script>
     <link rel="icon" type="image/png" href="logonx3.png">
+    
+    <!-- CSS adicional para a tag de licença -->
+    <style>
+        .tag-licenca {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .tag-comercial {
+            background-color: #e3f2fd;
+            color: #1976d2;
+            border: 1px solid #bbdefb;
+        }
+        .tag-sem-licenca {
+            background-color: #ffebee;
+            color: #d32f2f;
+            border: 1px solid #ffcdd2;
+        }
+    </style>
 </head>
 <body>
     <div class="app-container">
@@ -42,7 +64,6 @@
                     <button class="action-btn clear-btn" onclick="limparFormulario()"><i class="fas fa-eraser"></i></button>
                 </div>
                 
-                <!-- ESTA ERA A LINHA QUE TINHA SUMIDO -->
                 <div class="form-row">
                     <div class="input-group grow-2">
                         <label>Foto URL:</label>
@@ -58,9 +79,19 @@
                     </div>
                 </div>
 
-                <div class="input-group">
-                    <label>Nome do Produto:</label>
-                    <input type="text" id="prod-nome">
+                <!-- CAMPO NOME DO PRODUTO E LICENÇA LADO A LADO -->
+                <div class="form-row">
+                    <div class="input-group grow-2">
+                        <label>Nome do Produto:</label>
+                        <input type="text" id="prod-nome">
+                    </div>
+                    <div class="input-group">
+                        <label>Possui Licença Comercial?</label>
+                        <select id="prod-licenca" style="margin-top: 5px;">
+                            <option value="sim">Sim (Permitido vender)</option>
+                            <option value="nao">Não (Apenas pessoal)</option>
+                        </select>
+                    </div>
                 </div>
 
                 <div class="form-row">
@@ -82,7 +113,6 @@
                     <button class="add-circle-btn" onclick="adicionarLinhaFilamento()"><i class="fas fa-plus-circle"></i></button>
                 </div>
 
-                <!-- ESTAS SÃO AS LINHAS INFERIORES CORRIGIDAS -->
                 <div class="form-row">
                     <div class="input-group">
                         <label>Outros Valores (R$):</label>
