@@ -242,4 +242,36 @@ async function init() {
     carregarProdutos();
 }
 
-init();
+// Removemos a chamada de carregarProdutos() de dentro do init() 
+// para que as coisas não dependam uma da outra e não travem.
+
+async function initConfiguracoes() {
+    try {
+        const docRef = doc(db, "sistema", "configuracoes");
+        const docSnap = await getDoc(docRef);
+        
+        if (docSnap.exists()) {
+            const data = docSnap.data();
+            if(data.configs) configs = data.configs;
+            if(data.materiais) materiais = data.materiais;
+            
+            document.getElementById('cfg-energia').value = configs.energia;
+            document.getElementById('cfg-consumo').value = configs.consumo;
+            document.getElementById('cfg-maquina').value = configs.maquina;
+            document.getElementById('cfg-maoobra').value = configs.maoobra;
+            document.getElementById('cfg-margem').value = configs.margem;
+            document.getElementById('cfg-embalagem').value = configs.embalagem;
+
+            materiais.forEach(m => adicionarLinhaMaterial(m.cor, m.custoGrama));
+        } else {
+            adicionarLinhaMaterial(); 
+        }
+    } catch (error) {
+        console.error("Erro ao carregar as configurações:", error);
+    }
+}
+
+// Inicializa as duas coisas separadamente assim que a página abre
+limparFormulario();
+initConfiguracoes();
+carregarProdutos();
