@@ -102,6 +102,7 @@ window.adicionarLinhaFilamento = function(corSelecionada = "0", qtdSeta = "") {
 window.calcularCustoProduto = function() {
     let horas = parseFloat(document.getElementById('prod-horas').value) || 0;
     let outros = parseFloat(document.getElementById('prod-outros').value) || 0;
+    let valorCobrado = parseFloat(document.getElementById('prod-cobrado').value) || 0;
 
     let custoMaquina = horas * configs.maquina;
     let custoMaoObra = horas * configs.maoobra;
@@ -113,10 +114,28 @@ window.calcularCustoProduto = function() {
         custoMaterial += (custoGrama * qtd);
     });
 
+    // Calcula o custo total real
     let custoTotal = custoMaterial + custoMaquina + custoMaoObra + configs.embalagem + outros;
+    
+    // Calcula a sugestão com a margem
     let sugerido = custoTotal * (1 + configs.margem);
     
+    // Calcula o lucro baseado no que você informou no campo "Valor Cobrado"
+    let lucro = valorCobrado - custoTotal;
+    
+    // Atualiza os campos na tela
+    document.getElementById('prod-custo-total').value = `R$ ${custoTotal.toFixed(2)}`;
     document.getElementById('prod-sugerido').value = `R$ ${sugerido.toFixed(2)}`;
+    
+    // Atualiza o lucro (mostra cor vermelha se der prejuízo)
+    const lucroInput = document.getElementById('prod-lucro');
+    lucroInput.value = `R$ ${lucro.toFixed(2)}`;
+    if (lucro < 0) {
+        lucroInput.style.color = '#d32f2f'; // Vermelho
+    } else {
+        lucroInput.style.color = '#2e7d32'; // Verde
+    }
+
     return custoTotal;
 }
 
