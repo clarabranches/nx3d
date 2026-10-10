@@ -180,7 +180,8 @@ window.editarProduto = function(id) {
     // Se o produto tiver filamentos salvos, recria as linhas preenchidas
     if (produto.filamentosUsados && produto.filamentosUsados.length > 0) {
         produto.filamentosUsados.forEach(f => {
-            adicionarLinhaFilamento(f.custoGrama, f.quantidade);
+            // Agora passamos f.cor em vez de f.custoGrama
+            adicionarLinhaFilamento(f.cor, f.quantidade);
         });
     } else {
         adicionarLinhaFilamento(); // Linha vazia se não tiver nada
@@ -210,13 +211,18 @@ window.excluirProduto = async function() {
 }
 
 window.salvarProduto = async function() {
-    // Recolher as informações dos filamentos preenchidos
     let filamentosUsados = [];
     document.querySelectorAll('#filamentos-list .filamento-row').forEach(row => {
-        let custoGrama = parseFloat(row.querySelector('.prod-fil-cor').value) || 0;
+        const selectCor = row.querySelector('.prod-fil-cor');
+        const opcaoSelecionada = selectCor.options[selectCor.selectedIndex];
+        
+        let nomeCor = selectCor.value; // Agora o value é o nome
+        let custoGrama = parseFloat(opcaoSelecionada.getAttribute('data-custo')) || 0;
         let qtd = parseFloat(row.querySelector('.prod-fil-qtd').value) || 0;
-        if (custoGrama > 0 && qtd > 0) {
-            filamentosUsados.push({ custoGrama: custoGrama, quantidade: qtd });
+        
+        if (nomeCor !== "0" && qtd > 0) {
+            // Salvamos o nome da cor e a quantidade
+            filamentosUsados.push({ cor: nomeCor, custoGrama: custoGrama, quantidade: qtd });
         }
     });
 
