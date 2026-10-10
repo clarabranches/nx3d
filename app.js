@@ -151,6 +151,8 @@ window.limparFormulario = function() {
     document.getElementById('prod-outros').value = '';
     document.getElementById('prod-cobrado').value = '';
     document.getElementById('prod-sugerido').value = '';
+    document.getElementById('prod-custo-total').value = '';
+    document.getElementById('prod-lucro').value = '';
     
     const list = document.getElementById('filamentos-list');
     list.innerHTML = '';
