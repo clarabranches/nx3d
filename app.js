@@ -4,12 +4,13 @@ import { getFirestore, collection, addDoc, getDocs, doc, setDoc, getDoc, updateD
 
 // COLOQUE AS SUAS CREDENCIAIS DO FIREBASE AQUI
 const firebaseConfig = {
-  apiKey: "SUA_API_KEY",
-  authDomain: "seu-projeto.firebaseapp.com",
-  projectId: "seu-projeto",
-  storageBucket: "seu-projeto.appspot.com",
-  messagingSenderId: "123456789",
-  appId: "1:123456789:web:abcdef"
+    apiKey: "AIzaSyBszG-rJmhiR4q3JleTHUPNNewNlOdPVpM",
+    authDomain: "nexo3dstm.firebaseapp.com",
+    projectId: "nexo3dstm",
+    storageBucket: "nexo3dstm.firebasestorage.app",
+    messagingSenderId: "641884862212",
+    appId: "1:641884862212:web:772228dcc3843a32154251",
+    measurementId: "G-NYRKQB9CG1"
 };
 
 // Inicialização Firebase
