@@ -40,7 +40,22 @@
     </style>
 </head>
 <body>
-    <div class="app-container">
+    <!-- TELA DE LOGIN -->
+    <div id="login-screen">
+        <div class="login-box">
+            <h2>Nexo 3D Login</h2>
+            <div class="input-group">
+                <input type="email" id="login-email" placeholder="E-mail">
+            </div>
+            <div class="input-group">
+                <input type="password" id="login-senha" placeholder="Senha">
+            </div>
+            <button class="login-btn" onclick="fazerLogin()">Entrar</button>
+            <p id="login-erro" style="color: red; margin-top: 10px; display: none;">Login ou senha incorretos.</p>
+        </div>
+    </div>
+    
+    <div class="app-container" id="main-app" style="display: none;">
         <!-- Top Navigation Bar -->
         <header class="top-bar">
             <div class="nav-icons">
