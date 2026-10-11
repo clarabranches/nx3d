@@ -338,19 +338,18 @@ window.renderizarProdutosLista = function(arrayDeProdutos) {
 
 // NOVA FUNÇÃO: Disparada ao digitar na busca ou alterar o select de tipo
 // NOVA FUNÇÃO ATUALIZADA: Filtro + Ordenação por Preço e Lucro
+// NOVA FUNÇÃO ATUALIZADA: Filtro + Ordenação por Preço, Lucro e Código
 window.filtrarProdutos = function() {
     const termoBusca = document.getElementById('search-input').value.toLowerCase();
     const tipoFiltro = document.getElementById('search-tipo').value;
-    const ordenacao = document.getElementById('sort-tipo').value; // Pega o valor da ordenação
+    const ordenacao = document.getElementById('sort-tipo').value; 
 
     // 1. Primeiro filtra quem deve aparecer (por texto ou tipo)
     let filtrados = listaDeProdutos.filter(p => {
         const nomeUpper = (p.nome || '').toLowerCase();
         const codigoUpper = (p.codigo || '').toLowerCase();
         
-        // Verifica se o texto digitado bate com nome ou código
         const matchTexto = nomeUpper.includes(termoBusca) || codigoUpper.includes(termoBusca);
-        // Verifica se o select de tipo bate com o tipo salvo
         const matchTipo = (tipoFiltro === 'todos') || (p.tipo === tipoFiltro);
         
         return matchTexto && matchTipo;
@@ -358,26 +357,31 @@ window.filtrarProdutos = function() {
 
     // 2. Depois aplica a regra de ordenação na lista já filtrada
     if (ordenacao === 'preco-maior') {
-        // Ordena do maior valor cobrado para o menor
         filtrados.sort((a, b) => (b.valorCobrado || 0) - (a.valorCobrado || 0));
     } 
     else if (ordenacao === 'preco-menor') {
-        // Ordena do menor valor cobrado para o maior
         filtrados.sort((a, b) => (a.valorCobrado || 0) - (b.valorCobrado || 0));
     } 
     else if (ordenacao === 'lucro-maior') {
-        // Calcula o lucro em tempo real (Venda - Custo) e ordena pelo maior lucro
         filtrados.sort((a, b) => {
             const lucroA = (a.valorCobrado || 0) - (a.custoCalculado || 0);
             const lucroB = (b.valorCobrado || 0) - (b.custoCalculado || 0);
             return lucroB - lucroA;
         });
     }
+    // NOVA REGRA: Ordenar por código (Maior para Menor / Z a A)
+    else if (ordenacao === 'codigo-maior') {
+        filtrados.sort((a, b) => {
+            const codA = (a.codigo || '').toString().toLowerCase();
+            const codB = (b.codigo || '').toString().toLowerCase();
+            // localeCompare é ótimo para comparar letras e números corretamente
+            return codB.localeCompare(codA, undefined, { numeric: true, sensitivity: 'base' });
+        });
+    }
 
     // 3. Renderiza a lista na tela com o filtro e a ordem aplicados
     renderizarProdutosLista(filtrados);
 }
-
 async function carregarProdutos() {
     const grid = document.getElementById('products-list');
     grid.innerHTML = 'A carregar...';
