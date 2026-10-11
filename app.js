@@ -1,8 +1,9 @@
 // Importando o SDK do Firebase via CDN (Módulos)
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getFirestore, collection, addDoc, getDocs, doc, setDoc, getDoc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+// NOVAS IMPORTAÇÕES DE AUTENTICAÇÃO
+import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-// COLOQUE AS SUAS CREDENCIAIS DO FIREBASE AQUI
 const firebaseConfig = {
     apiKey: "AIzaSyBszG-rJmhiR4q3JleTHUPNNewNlOdPVpM",
     authDomain: "nexo3dstm.firebaseapp.com",
@@ -15,6 +16,7 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+const auth = getAuth(app); // INICIA A AUTENTICAÇÃO
 
 let configs = {
     energia: 1.5,
@@ -438,6 +440,43 @@ async function initConfiguracoes() {
     }
 }
 
-limparFormulario();
-initConfiguracoes();
-carregarProdutos();
+// ==========================================
+// SISTEMA DE LOGIN E SEGURANÇA
+// ==========================================
+
+// Monitora se o usuário está logado ou não
+onAuthStateChanged(auth, (user) => {
+    if (user) {
+        // Usuário logado! Esconde o login e mostra o sistema
+        document.getElementById('login-screen').style.display = 'none';
+        document.getElementById('main-app').style.display = 'block';
+        
+        // Carrega os dados agora que temos permissão
+        initConfiguracoes();
+        carregarProdutos();
+    } else {
+        // Não está logado. Mostra o login e esconde o sistema
+        document.getElementById('login-screen').style.display = 'flex';
+        document.getElementById('main-app').style.display = 'none';
+    }
+});
+
+// Função ativada pelo botão "Entrar"
+window.fazerLogin = async function() {
+    const email = document.getElementById('login-email').value;
+    const senha = document.getElementById('login-senha').value;
+    const erroMsg = document.getElementById('login-erro');
+    
+    try {
+        await signInWithEmailAndPassword(auth, email, senha);
+        erroMsg.style.display = 'none';
+    } catch (error) {
+        console.error("Erro no login", error);
+        erroMsg.style.display = 'block';
+    }
+}
+
+// Opcional: Se quiser adicionar um botão de Sair depois
+window.fazerLogout = function() {
+    signOut(auth);
+}
