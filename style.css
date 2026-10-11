@@ -291,10 +291,11 @@ body {
     margin: 15px auto 0;
 }
 
-/* Tela de Login */
+/* =========================================
+   Tela de Login
+========================================= */
 #login-screen {
     display: flex;
-    flex-direction: column;
     align-items: center;
     justify-content: center;
     height: 100vh;
@@ -314,16 +315,35 @@ body {
     width: 100%;
     max-width: 400px;
     text-align: center;
+    
+    /* Mágica do espaçamento aqui */
+    display: flex;
+    flex-direction: column;
+    gap: 20px; 
 }
 
 .login-box h2 {
-    margin-bottom: 20px;
+    margin: 0;
+    color: var(--text-main);
 }
 
 .login-box .input-group {
-    margin-bottom: 15px;
+    margin: 0; /* Remove a margem antiga porque o 'gap' já faz o trabalho */
+    padding: 0; /* Remove o padding extra para os inputs ficarem mais limpos */
     box-shadow: none;
     border: 1px solid #ddd;
+    background: #fff;
+    border-radius: 8px;
+    overflow: hidden; /* Mantém as bordas arredondadas no input */
+}
+
+.login-box input {
+    width: 100%;
+    padding: 15px;
+    border: none;
+    outline: none;
+    font-size: 16px;
+    background: transparent;
 }
 
 .login-btn {
@@ -332,8 +352,13 @@ body {
     background: #000;
     color: #fff;
     border: none;
-    border-radius: 12px;
+    border-radius: 8px;
     font-size: 16px;
+    font-weight: bold;
     cursor: pointer;
-    margin-top: 10px;
+    transition: 0.2s;
+}
+
+.login-btn:hover {
+    background: #333;
 }
