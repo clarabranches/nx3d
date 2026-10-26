@@ -2,14 +2,15 @@
 <!doctype html>
 <html lang="pt-BR">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Nexo 3D - Gestão</title>
-<link rel="stylesheet" href="style.css">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-<script type="module" src="app.js"></script>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Nexo 3D - Gestão</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <script type="module" src="app.js"></script>
 </head>
 <body>
+
 <section id="login-screen">
   <div class="login-box">
     <h2>Nexo 3D Login</h2>
@@ -21,265 +22,324 @@
 </section>
 
 <div class="app-container" id="main-app" hidden>
-<header class="top-bar">
-  <div class="nav-icons">
-    <button class="icon-btn active" id="nav-produtos" onclick="switchTab('produtos')" title="Produtos"><i class="fas fa-box"></i></button>
-    <button class="icon-btn" id="nav-novo" onclick="novoProduto()" title="Cadastrar produto"><i class="fas fa-plus-square"></i></button>
-    <button class="icon-btn" id="nav-estoque" onclick="switchTab('estoque')" title="Estoque"><i class="fas fa-boxes-stacked"></i></button>
-    <button class="icon-btn" id="nav-vendas" onclick="switchTab('vendas')" title="Vendas"><i class="fas fa-shopping-bag"></i></button>
-    <button class="icon-btn" id="nav-config" onclick="switchTab('config')" title="Configurações"><i class="fas fa-cog"></i></button>
-  </div>
 
-  <div class="search-bar" id="search-container">
-    <div class="search-bar-left">
-      <i class="fas fa-filter"></i>
-      <select id="search-tipo" onchange="filtrarProdutos()">
-        <option value="todos">Todos os tipos</option>
-      </select>
+  <header class="top-bar">
+    <div class="nav-icons">
+      <button class="icon-btn active" id="nav-produtos"
+        onclick="switchTab('produtos')" title="Produtos">
+        <i class="fas fa-box"></i>
+      </button>
+
+      <button class="icon-btn" id="nav-novo"
+        onclick="novoProduto()" title="Cadastrar produto">
+        <i class="fas fa-plus-square"></i>
+      </button>
+
+      <button class="icon-btn" id="nav-estoque"
+        onclick="switchTab('estoque')" title="Estoque">
+        <i class="fas fa-boxes-stacked"></i>
+      </button>
+
+      <button class="icon-btn" id="nav-vendas"
+        onclick="switchTab('vendas')" title="Vendas">
+        <i class="fas fa-shopping-bag"></i>
+      </button>
+
+      <button class="icon-btn" id="nav-config"
+        onclick="switchTab('config')" title="Configurações">
+        <i class="fas fa-cog"></i>
+      </button>
     </div>
-    <input id="search-input" placeholder="Texto de Pesquisa" oninput="filtrarProdutos()">
-    <i class="fas fa-search"></i>
-  </div>
-</header>
 
-<!-- ABA PRODUTOS -->
-<main id="tab-produtos" class="tab-content active">
-  <div class="products-grid" id="products-list"></div>
-</main>
-
-<!-- ABA CADASTRO DE PRODUTOS -->
-<main id="tab-novo" class="tab-content">
-<div class="form-container">
-
-  <div class="form-header-actions">
-    <button id="btn-excluir" class="action-btn danger" onclick="excluirProduto()" hidden><i class="fas fa-trash"></i></button>
-    <button class="action-btn" onclick="salvarProduto()" title="Salvar"><i class="fas fa-save"></i></button>
-    <button class="action-btn" onclick="limparFormulario()" title="Limpar"><i class="fas fa-eraser"></i></button>
-  </div>
-
-  <div class="form-row">
-    <div class="input-group grow-2">
-      <label>Foto URL</label>
-      <input id="prod-foto" placeholder="Link da imagem">
-    </div>
-    <div class="input-group">
-      <label>Código do produto</label>
-      <input id="prod-codigo" placeholder="NX-001">
-    </div>
-  </div>
-
-  <div class="form-row">
-    <div class="input-group grow-2">
-      <label>Nome do produto</label>
-      <input id="prod-nome" required>
-    </div>
-    <div class="input-group">
-      <label>Tipo de produto</label>
-      <select id="prod-tipo">
-        <option value="">Selecione o tipo</option>
-      </select>
-    </div>
-  </div>
-
-  <div class="form-row">
-    <div class="input-group">
-      <label>Cores disponíveis (separe por vírgula)</label>
-      <input id="prod-cores" placeholder="Preto, Verde, Rosa">
-    </div>
-    <div class="input-group">
-      <label>Licença comercial</label>
-      <select id="prod-licenca">
-        <option value="sim">Sim (permitido vender)</option>
-        <option value="nao">Não (uso pessoal)</option>
-      </select>
-    </div>
-  </div>
-
-  <div class="form-row">
-    <div class="input-group">
-      <label>Horas de impressão</label>
-      <input type="number" step=".01" id="prod-horas" oninput="calcularCustoProduto()">
-    </div>
-    <div class="input-group">
-      <label>Quantidade produzida (total acumulado)</label>
-      <input type="number" min="0" id="prod-produzido" value="0">
-    </div>
-  </div>
-
-  <div class="card-section">
-    <h4>Filamentos utilizados</h4>
-    <div id="filamentos-list"></div>
-    <button class="add-circle-btn" onclick="adicionarLinhaFilamento()"><i class="fas fa-plus-circle"></i></button>
-  </div>
-
-  <div class="form-row">
-    <div class="input-group">
-      <label>Outros valores (R$)</label>
-      <input type="number" step=".01" id="prod-outros" oninput="calcularCustoProduto()">
-    </div>
-    <div class="input-group">
-      <label>Custo de produção</label>
-      <input id="prod-custo-total" readonly>
-    </div>
-    <div class="input-group">
-      <label>Valor sugerido</label>
-      <input id="prod-sugerido" readonly>
-    </div>
-  </div>
-
-  <div class="form-row">
-    <div class="input-group">
-      <label>Valor de venda (R$)</label>
-      <input type="number" step=".01" id="prod-cobrado" oninput="calcularCustoProduto()">
-    </div>
-    <div class="input-group">
-      <label>Lucro estimado</label>
-      <input id="prod-lucro" readonly>
-    </div>
-  </div>
-
-  <p class="muted">
-    O estoque por cor é controlado na aba Estoque.
-    Registrar produção aumenta o total produzido; para disponibilizar peças,
-    informe a entrada na aba Estoque.
-  </p>
-</div>
-</main>
-
-<!-- ABA ESTOQUE -->
-<main id="tab-estoque" class="tab-content">
-  <div class="page-heading">
-    <h2>Estoque por produto e cor</h2>
-    <p>Registre entradas de peças produzidas e acompanhe a disponibilidade.</p>
-  </div>
-
-  <div class="table-wrap">
-    <table>
-      <thead>
-        <tr>
-          <th>Produto</th>
-          <th>Cor</th>
-          <th>Disponível</th>
-          <th>Entrada produzida</th>
-          <th>Ação</th>
-        </tr>
-      </thead>
-      <tbody id="stock-list"></tbody>
-    </table>
-  </div>
-</main>
-
-<!-- ABA VENDAS -->
-<main id="tab-vendas" class="tab-content">
-  <div class="form-container">
-    <h2>Registrar venda</h2>
-
-    <div class="form-row">
-      <div class="input-group grow-2">
-        <label>Produto</label>
-        <select id="sale-product" onchange="atualizarCoresVenda()"></select>
+    <div class="search-bar" id="search-container">
+      <div class="search-bar-left">
+        <i class="fas fa-filter"></i>
+        <select id="search-tipo" onchange="filtrarProdutos()">
+          <option value="todos">Todos os tipos</option>
+        </select>
       </div>
-      <div class="input-group">
-        <label>Cor</label>
-        <select id="sale-color"></select>
+
+      <input id="search-input" placeholder="Texto de Pesquisa"
+        oninput="filtrarProdutos()">
+
+      <i class="fas fa-search"></i>
+    </div>
+  </header>
+
+  <!-- PRODUTOS -->
+  <main id="tab-produtos" class="tab-content active">
+    <div class="products-grid" id="products-list"></div>
+  </main>
+
+  <!-- CADASTRO DE PRODUTOS -->
+  <main id="tab-novo" class="tab-content">
+    <div class="form-container">
+
+      <div class="form-header-actions">
+        <button id="btn-excluir" class="action-btn danger"
+          onclick="excluirProduto()" hidden>
+          <i class="fas fa-trash"></i>
+        </button>
+
+        <button class="action-btn" onclick="salvarProduto()" title="Salvar">
+          <i class="fas fa-save"></i>
+        </button>
+
+        <button class="action-btn" onclick="limparFormulario()" title="Limpar">
+          <i class="fas fa-eraser"></i>
+        </button>
       </div>
-    </div>
 
-    <div class="form-row">
-      <div class="input-group">
-        <label>Quantidade vendida</label>
-        <input id="sale-quantity" type="number" min="1" value="1">
+      <div class="form-row">
+        <div class="input-group grow-2">
+          <label>Foto URL</label>
+          <input id="prod-foto" placeholder="Link da imagem">
+        </div>
+
+        <div class="input-group">
+          <label>Código do produto</label>
+          <input id="prod-codigo" placeholder="NX-001">
+        </div>
       </div>
-      <div class="input-group">
-        <label>Valor unitário (R$)</label>
-        <input id="sale-price" type="number" min="0" step=".01">
+
+      <div class="form-row">
+        <div class="input-group grow-2">
+          <label>Nome do produto</label>
+          <input id="prod-nome" required>
+        </div>
+
+        <div class="input-group">
+          <label>Tipo de produto</label>
+          <select id="prod-tipo">
+            <option value="">Selecione o tipo</option>
+          </select>
+        </div>
       </div>
-    </div>
 
-    <div class="form-row">
-      <div class="input-group">
-        <label>Observação (opcional)</label>
-        <input id="sale-note" placeholder="Ex.: pedido do Instagram">
+      <div class="form-row">
+        <div class="input-group">
+          <label>Cores disponíveis (separe por vírgula)</label>
+          <input id="prod-cores" placeholder="Preto, Verde, Rosa">
+        </div>
+
+        <div class="input-group">
+          <label>Licença comercial</label>
+          <select id="prod-licenca">
+            <option value="sim">Sim (permitido vender)</option>
+            <option value="nao">Não (uso pessoal)</option>
+          </select>
+        </div>
       </div>
+
+      <div class="form-row">
+        <div class="input-group">
+          <label>Horas de impressão</label>
+          <input type="number" step=".01" id="prod-horas"
+            oninput="calcularCustoProduto()">
+        </div>
+      </div>
+
+      <div class="card-section">
+        <h4>Filamentos utilizados</h4>
+        <div id="filamentos-list"></div>
+        <button class="add-circle-btn" onclick="adicionarLinhaFilamento()">
+          <i class="fas fa-plus-circle"></i>
+        </button>
+      </div>
+
+      <div class="form-row">
+        <div class="input-group">
+          <label>Outros valores (R$)</label>
+          <input type="number" step=".01" id="prod-outros"
+            oninput="calcularCustoProduto()">
+        </div>
+
+        <div class="input-group">
+          <label>Custo de produção</label>
+          <input id="prod-custo-total" readonly>
+        </div>
+
+        <div class="input-group">
+          <label>Valor sugerido</label>
+          <input id="prod-sugerido" readonly>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="input-group">
+          <label>Valor de venda (R$)</label>
+          <input type="number" step=".01" id="prod-cobrado"
+            oninput="calcularCustoProduto()">
+        </div>
+
+        <div class="input-group">
+          <label>Lucro estimado</label>
+          <input id="prod-lucro" readonly>
+        </div>
+      </div>
+
+      <p class="muted">
+        A quantidade disponível é controlada somente na aba Estoque.
+        Use essa aba para adicionar peças e registre as vendas na aba Vendas
+        para dar baixa automática.
+      </p>
+    </div>
+  </main>
+
+  <!-- ESTOQUE -->
+  <main id="tab-estoque" class="tab-content">
+    <div class="page-heading">
+      <h2>Estoque por produto e cor</h2>
+      <p>
+        Adicione quantidades ao estoque por cor.
+        As vendas reduzem o saldo automaticamente.
+      </p>
     </div>
 
-    <button class="action-btn" onclick="registrarVenda()" title="Confirmar venda"><i class="fas fa-save"></i></button>
-  </div>
-
-  <div class="page-heading">
-    <h2>Histórico de vendas</h2>
-  </div>
-
-  <div class="table-wrap">
-    <table>
-      <thead>
-        <tr>
-          <th>Data</th>
-          <th>Produto</th>
-          <th>Cor</th>
-          <th>Qtd.</th>
-          <th>Valor total</th>
-          <th>Observação</th>
-        </tr>
-      </thead>
-      <tbody id="sales-history"></tbody>
-    </table>
-  </div>
-</main>
-
-<!-- ABA CONFIGURAÇÕES -->
-<main id="tab-config" class="tab-content">
-<div class="form-container">
-  <div class="form-header-actions">
-    <button class="action-btn" onclick="salvarConfiguracoes()"><i class="fas fa-save"></i></button>
-  </div>
-
-  <div class="form-row">
-    <div class="input-group">
-      <label>Energia elétrica (R$/kWh)</label>
-      <input type="number" step=".001" id="cfg-energia" value="1.5">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Produto</th>
+            <th>Cor</th>
+            <th>Disponível</th>
+            <th>Adicionar ao estoque</th>
+            <th>Ação</th>
+          </tr>
+        </thead>
+        <tbody id="stock-list"></tbody>
+      </table>
     </div>
-    <div class="input-group">
-      <label>Consumo da impressora (kW)</label>
-      <input type="number" step=".001" id="cfg-consumo" value=".210">
-    </div>
-  </div>
+  </main>
 
-  <div class="form-row">
-    <div class="input-group">
-      <label>Custo da máquina/hora (R$)</label>
-      <input type="number" step=".001" id="cfg-maquina" value=".315">
-    </div>
-    <div class="input-group">
-      <label>Mão de obra/hora (R$)</label>
-      <input type="number" step=".01" id="cfg-maoobra" value="5">
-    </div>
-  </div>
+  <!-- VENDAS -->
+  <main id="tab-vendas" class="tab-content">
+    <div class="form-container">
+      <h2>Registrar venda</h2>
 
-  <div class="form-row">
-    <div class="input-group">
-      <label>Margem de lucro (0.4 = 40%)</label>
-      <input type="number" step=".01" id="cfg-margem" value=".4">
-    </div>
-    <div class="input-group">
-      <label>Embalagem por peça (R$)</label>
-      <input type="number" step=".01" id="cfg-embalagem" value="1.5">
-    </div>
-  </div>
+      <div class="form-row">
+        <div class="input-group grow-2">
+          <label>Produto</label>
+          <select id="sale-product" onchange="atualizarCoresVenda()"></select>
+        </div>
 
-  <div class="card-section">
-    <h4>Tipos de produto</h4>
-    <div id="tipos-list"></div>
-    <button class="add-circle-btn" onclick="adicionarLinhaTipo()"><i class="fas fa-plus-circle"></i></button>
-  </div>
+        <div class="input-group">
+          <label>Cor</label>
+          <select id="sale-color"></select>
+        </div>
+      </div>
 
-  <div class="card-section">
-    <h4>Filamentos (matéria-prima)</h4>
-    <div id="materiais-list"></div>
-    <button class="add-circle-btn" onclick="adicionarLinhaMaterial()"><i class="fas fa-plus-circle"></i></button>
-  </div>
-</div>
-</main>
+      <div class="form-row">
+        <div class="input-group">
+          <label>Quantidade vendida</label>
+          <input id="sale-quantity" type="number" min="1" value="1">
+        </div>
+
+        <div class="input-group">
+          <label>Valor unitário (R$)</label>
+          <input id="sale-price" type="number" min="0" step=".01">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="input-group">
+          <label>Observação (opcional)</label>
+          <input id="sale-note" placeholder="Ex.: pedido do Instagram">
+        </div>
+      </div>
+
+      <button class="action-btn" onclick="registrarVenda()"
+        title="Confirmar venda">
+        <i class="fas fa-save"></i>
+      </button>
+    </div>
+
+    <div class="page-heading">
+      <h2>Histórico de vendas</h2>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>Produto</th>
+            <th>Cor</th>
+            <th>Qtd.</th>
+            <th>Valor total</th>
+            <th>Observação</th>
+          </tr>
+        </thead>
+        <tbody id="sales-history"></tbody>
+      </table>
+    </div>
+  </main>
+
+  <!-- CONFIGURAÇÕES -->
+  <main id="tab-config" class="tab-content">
+    <div class="form-container">
+
+      <div class="form-header-actions">
+        <button class="action-btn" onclick="salvarConfiguracoes()">
+          <i class="fas fa-save"></i>
+        </button>
+      </div>
+
+      <div class="form-row">
+        <div class="input-group">
+          <label>Energia elétrica (R$/kWh)</label>
+          <input type="number" step=".001" id="cfg-energia" value="1.5">
+        </div>
+
+        <div class="input-group">
+          <label>Consumo da impressora (kW)</label>
+          <input type="number" step=".001" id="cfg-consumo" value=".210">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="input-group">
+          <label>Custo da máquina/hora (R$)</label>
+          <input type="number" step=".001" id="cfg-maquina" value=".315">
+        </div>
+
+        <div class="input-group">
+          <label>Mão de obra/hora (R$)</label>
+          <input type="number" step=".01" id="cfg-maoobra" value="5">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="input-group">
+          <label>Margem de lucro (0.4 = 40%)</label>
+          <input type="number" step=".01" id="cfg-margem" value=".4">
+        </div>
+
+        <div class="input-group">
+          <label>Embalagem por peça (R$)</label>
+          <input type="number" step=".01" id="cfg-embalagem" value="1.5">
+        </div>
+      </div>
+
+      <div class="card-section">
+        <h4>Tipos de produto</h4>
+        <div id="tipos-list"></div>
+        <button class="add-circle-btn" onclick="adicionarLinhaTipo()">
+          <i class="fas fa-plus-circle"></i>
+        </button>
+      </div>
+
+      <div class="card-section">
+        <h4>Filamentos (matéria-prima)</h4>
+        <div id="materiais-list"></div>
+        <button class="add-circle-btn" onclick="adicionarLinhaMaterial()">
+          <i class="fas fa-plus-circle"></i>
+        </button>
+      </div>
+
+    </div>
+  </main>
+
 </div>
 </body>
 </html>
