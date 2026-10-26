@@ -1,486 +1,736 @@
-// Importando o SDK do Firebase via CDN (Módulos)
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, doc, setDoc, getDoc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-// NOVAS IMPORTAÇÕES DE AUTENTICAÇÃO
-import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import {
+  getFirestore, collection, addDoc, getDocs, doc, setDoc,
+  getDoc, updateDoc, deleteDoc, runTransaction
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import {
+  getAuth, signInWithEmailAndPassword, onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 const firebaseConfig = {
-    apiKey: "AIzaSyBszG-rJmhiR4q3JleTHUPNNewNlOdPVpM",
-    authDomain: "nexo3dstm.firebaseapp.com",
-    projectId: "nexo3dstm",
-    storageBucket: "nexo3dstm.firebasestorage.app",
-    messagingSenderId: "641884862212",
-    appId: "1:641884862212:web:772228dcc3843a32154251",
-    measurementId: "G-NYRKQB9CG1"
+  apiKey: "AIzaSyBszG-rJmhiR4q3JleTHUPNNewNlOdPVpM",
+  authDomain: "nexo3dstm.firebaseapp.com",
+  projectId: "nexo3dstm",
+  storageBucket: "nexo3dstm.firebasestorage.app",
+  messagingSenderId: "641884862212",
+  appId: "1:641884862212:web:772228dcc3843a32154251",
+  measurementId: "G-NYRKQB9CG1"
 };
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
-const auth = getAuth(app); // INICIA A AUTENTICAÇÃO
+const auth = getAuth(app);
 
 let configs = {
-    energia: 1.5,
-    consumo: 0.21,
-    maquina: 0.315,
-    maoobra: 5.0,
-    margem: 0.4,
-    embalagem: 1.5
+  energia: 1.5,
+  consumo: .21,
+  maquina: .315,
+  maoobra: 5,
+  margem: .4,
+  embalagem: 1.5
 };
 
-let materiais = []; 
-let tiposProduto = []; // NOVA VARIÁVEL: Lista de tipos cadastrados
-let listaDeProdutos = []; 
-let produtoEmEdicaoId = null; 
+let materiais = [];
+let tiposProduto = [];
+let produtos = [];
+let editId = null;
+let vendas = [];
 
-// ==========================================
-// CONFIGURAÇÕES, TIPOS E MATERIAIS
-// ==========================================
+window.switchTab = (tab) => {
+  document.querySelectorAll('.tab-content').forEach(x => x.classList.remove('active'));
+  document.querySelectorAll('.icon-btn').forEach(x => x.classList.remove('active'));
 
-window.adicionarLinhaMaterial = function(cor = "", valor = "") {
-    const list = document.getElementById('materiais-list');
-    const div = document.createElement('div');
-    div.className = 'filamento-row form-row';
-    div.innerHTML = `
-        <div class="input-group"><input type="text" placeholder="Cor (Ex: Preto)" value="${cor}" class="mat-cor"></div>
-        <div class="input-group"><input type="number" step="0.0001" placeholder="Custo por grama (R$)" value="${valor}" class="mat-valor"></div>
-    `;
-    list.appendChild(div);
-}
+  document.getElementById('tab-' + tab).classList.add('active');
+  document.getElementById('nav-' + tab)?.classList.add('active');
+  document.getElementById('search-container').hidden = tab !== 'produtos';
 
-// NOVA FUNÇÃO: Adicionar linha para Tipos de Produto
-window.adicionarLinhaTipo = function(nome = "") {
-    const list = document.getElementById('tipos-list');
-    const div = document.createElement('div');
-    div.className = 'tipo-row form-row';
-    div.style.alignItems = "flex-end";
-    div.innerHTML = `
-        <div class="input-group"><input type="text" placeholder="Nome do Tipo (Ex: Action Figure, Vaso)" value="${nome}" class="tipo-nome"></div>
-        <button class="action-btn clear-btn" onclick="this.parentElement.remove()" style="margin-bottom: 5px;"><i class="fas fa-trash"></i></button>
-    `;
-    list.appendChild(div);
-}
+  if (tab === 'estoque') renderEstoque();
 
-// NOVA FUNÇÃO: Atualizar os dropdowns (selects) de tipos nas outras abas
-window.atualizarSelectsTipos = function() {
-    const prodTipo = document.getElementById('prod-tipo');
-    const searchTipo = document.getElementById('search-tipo');
+  if (tab === 'vendas') {
+    preencherProdutosVenda();
+    renderHistorico();
+  }
+};
 
-    // Mantém seleção atual caso exista
-    const currentProdTipo = prodTipo.value;
-    const currentSearchTipo = searchTipo.value;
+window.novoProduto = () => {
+  limparFormulario();
+  switchTab('novo');
+};
 
-    prodTipo.innerHTML = '<option value="">Selecione o tipo</option>';
-    searchTipo.innerHTML = '<option value="todos" style="color: #000;">Todos os Tipos</option>';
+window.adicionarLinhaFilamento = (cor = '0', qtd = '') => {
+  const row = document.createElement('div');
+  row.className = 'filamento-row form-row';
 
-    tiposProduto.forEach(t => {
-        prodTipo.innerHTML += `<option value="${t}">${t}</option>`;
-        searchTipo.innerHTML += `<option value="${t}" style="color: #000;">${t}</option>`;
-    });
+  row.innerHTML = `
+    <div class="input-group">
+      <select class="prod-fil-cor" onchange="calcularCustoProduto()">
+        <option value="0" data-custo="0">Selecione a cor</option>
+        ${materiais.map(m => `
+          <option value="${escapeHtml(m.cor)}"
+            data-custo="${Number(m.custoGrama) || 0}"
+            ${m.cor === cor ? 'selected' : ''}>
+            ${escapeHtml(m.cor)}
+          </option>
+        `).join('')}
+      </select>
+    </div>
+    <div class="input-group">
+      <input class="prod-fil-qtd" type="number" step=".1" min="0"
+        placeholder="Quantidade (g)" value="${qtd}"
+        oninput="calcularCustoProduto()">
+    </div>
+    <button class="small-btn"
+      onclick="this.parentElement.remove();calcularCustoProduto()">
+      <i class="fas fa-trash"></i>
+    </button>
+  `;
 
-    prodTipo.value = currentProdTipo || "";
-    searchTipo.value = currentSearchTipo || "todos";
-}
+  document.getElementById('filamentos-list').appendChild(row);
+};
 
-window.salvarConfiguracoes = async function() {
-    configs.energia = parseFloat(document.getElementById('cfg-energia').value);
-    configs.consumo = parseFloat(document.getElementById('cfg-consumo').value);
-    configs.maquina = parseFloat(document.getElementById('cfg-maquina').value);
-    configs.maoobra = parseFloat(document.getElementById('cfg-maoobra').value);
-    configs.margem = parseFloat(document.getElementById('cfg-margem').value);
-    configs.embalagem = parseFloat(document.getElementById('cfg-embalagem').value);
+window.adicionarLinhaMaterial = (cor = '', valor = '') => {
+  const d = document.createElement('div');
+  d.className = 'form-row material-row';
 
-    materiais = [];
-    document.querySelectorAll('#materiais-list .filamento-row').forEach(row => {
-        const cor = row.querySelector('.mat-cor').value;
-        const valor = parseFloat(row.querySelector('.mat-valor').value);
-        if(cor && !isNaN(valor)) materiais.push({cor, custoGrama: valor});
-    });
+  d.innerHTML = `
+    <div class="input-group">
+      <input class="mat-cor" placeholder="Cor do filamento" value="${escapeAttr(cor)}">
+    </div>
+    <div class="input-group">
+      <input class="mat-valor" type="number" step=".0001"
+        placeholder="Custo por grama (R$)" value="${valor}">
+    </div>
+    <button class="small-btn" onclick="this.parentElement.remove()">
+      <i class="fas fa-trash"></i>
+    </button>
+  `;
 
-    // Salvar Tipos de Produtos
-    tiposProduto = [];
-    document.querySelectorAll('#tipos-list .tipo-row').forEach(row => {
-        const nome = row.querySelector('.tipo-nome').value.trim();
-        if(nome) tiposProduto.push(nome);
-    });
+  document.getElementById('materiais-list').appendChild(d);
+};
 
-    try {
-        await setDoc(doc(db, "sistema", "configuracoes"), { configs, materiais, tiposProduto });
-        atualizarSelectsTipos(); // Atualiza os menus suspensos imediatamente
-        alert("Configurações e Tipos salvos no Firebase!");
-    } catch (e) {
-        console.error("Erro ao salvar config: ", e);
+window.adicionarLinhaTipo = (nome = '') => {
+  const d = document.createElement('div');
+  d.className = 'form-row tipo-row';
+
+  d.innerHTML = `
+    <div class="input-group">
+      <input class="tipo-nome" placeholder="Nome da categoria" value="${escapeAttr(nome)}">
+    </div>
+    <button class="small-btn" onclick="this.parentElement.remove()">
+      <i class="fas fa-trash"></i>
+    </button>
+  `;
+
+  document.getElementById('tipos-list').appendChild(d);
+};
+
+window.calcularCustoProduto = () => {
+  const horas = +val('prod-horas');
+  const outros = +val('prod-outros');
+  const cobrado = +val('prod-cobrado');
+
+  let material = 0;
+
+  document.querySelectorAll('.filamento-row').forEach(r => {
+    const s = r.querySelector('.prod-fil-cor');
+    material +=
+      (+(s.selectedOptions[0]?.dataset.custo || 0)) *
+      (+r.querySelector('.prod-fil-qtd').value || 0);
+  });
+
+  const custo =
+    material +
+    horas * (+configs.maquina || 0) +
+    horas * (+configs.maoobra || 0) +
+    (+configs.embalagem || 0) +
+    outros;
+
+  document.getElementById('prod-custo-total').value = money(custo);
+  document.getElementById('prod-sugerido').value =
+    money(custo * (1 + (+configs.margem || 0)));
+  document.getElementById('prod-lucro').value = money(cobrado - custo);
+
+  return custo;
+};
+
+window.limparFormulario = () => {
+  editId = null;
+  document.getElementById('btn-excluir').hidden = true;
+
+  [
+    'prod-foto', 'prod-codigo', 'prod-nome', 'prod-cores',
+    'prod-horas', 'prod-produzido', 'prod-outros', 'prod-cobrado',
+    'prod-custo-total', 'prod-sugerido', 'prod-lucro'
+  ].forEach(id => document.getElementById(id).value = '');
+
+  document.getElementById('prod-produzido').value = '0';
+  document.getElementById('prod-tipo').value = '';
+  document.getElementById('prod-licenca').value = 'sim';
+  document.getElementById('filamentos-list').innerHTML = '';
+
+  adicionarLinhaFilamento();
+};
+
+window.editarProduto = (id) => {
+  const p = produtos.find(x => x.id === id);
+  if (!p) return;
+
+  editId = id;
+
+  const fields = {
+    'prod-foto': 'foto',
+    'prod-codigo': 'codigo',
+    'prod-nome': 'nome',
+    'prod-cores': 'cores',
+    'prod-horas': 'horas',
+    'prod-produzido': 'produzido',
+    'prod-outros': 'outros',
+    'prod-cobrado': 'valorCobrado',
+    'prod-tipo': 'tipo',
+    'prod-licenca': 'licenca'
+  };
+
+  Object.entries(fields).forEach(([el, k]) => {
+    document.getElementById(el).value =
+      k === 'cores'
+        ? (p.cores || []).join(', ')
+        : (p[k] ?? '');
+  });
+
+  // Compatibilidade com produtos cadastrados anteriormente.
+  if (p.produzido == null) {
+    document.getElementById('prod-produzido').value = p.quantidade || 0;
+  }
+
+  document.getElementById('btn-excluir').hidden = false;
+  document.getElementById('filamentos-list').innerHTML = '';
+
+  if ((p.filamentosUsados || []).length) {
+    (p.filamentosUsados || []).forEach(f =>
+      adicionarLinhaFilamento(f.cor, f.quantidade)
+    );
+  } else {
+    adicionarLinhaFilamento();
+  }
+
+  calcularCustoProduto();
+  switchTab('novo');
+};
+
+window.salvarProduto = async () => {
+  const nome = val('prod-nome').trim();
+
+  if (!nome) {
+    alert('Informe o nome do produto.');
+    return;
+  }
+
+  const filamentosUsados = [
+    ...document.querySelectorAll('.filamento-row')
+  ].map(r => ({
+    cor: r.querySelector('.prod-fil-cor').value,
+    quantidade: +r.querySelector('.prod-fil-qtd').value || 0,
+    custoGrama: +r.querySelector('.prod-fil-cor').selectedOptions[0]?.dataset.custo || 0
+  })).filter(f => f.cor !== '0' && f.quantidade > 0);
+
+  const cores = [
+    ...new Set(val('prod-cores').split(',').map(x => x.trim()).filter(Boolean))
+  ];
+
+  const antigo = produtos.find(p => p.id === editId);
+
+  const produto = {
+    nome,
+    codigo: val('prod-codigo').trim(),
+    tipo: val('prod-tipo'),
+    foto: val('prod-foto').trim(),
+    cores,
+    produzido: Math.max(0, +val('prod-produzido') || 0),
+    horas: +val('prod-horas') || 0,
+    outros: +val('prod-outros') || 0,
+    valorCobrado: +val('prod-cobrado') || 0,
+    licenca: val('prod-licenca'),
+    custoCalculado: calcularCustoProduto(),
+    filamentosUsados,
+    vendidos: antigo?.vendidos || 0,
+    estoquePorCor: antigo?.estoquePorCor || {},
+    quantidade: antigo?.quantidade || 0
+  };
+
+  cores.forEach(c => {
+    if (produto.estoquePorCor[c] == null) {
+      produto.estoquePorCor[c] = 0;
     }
-}
+  });
 
-// ==========================================
-// PRODUTOS
-// ==========================================
-
-window.adicionarLinhaFilamento = function(corSelecionada = "0", qtdSeta = "") {
-    const list = document.getElementById('filamentos-list');
-    const div = document.createElement('div');
-    div.className = 'filamento-row form-row';
-    
-    const corSelecionadaStr = corSelecionada.toString();
-
-    let options = materiais.map(m => {
-        let selected = (m.cor === corSelecionadaStr) ? "selected" : "";
-        return `<option value="${m.cor}" data-custo="${m.custoGrama}" ${selected}>${m.cor}</option>`;
-    }).join('');
-    
-    div.innerHTML = `
-        <div class="input-group">
-            <select class="prod-fil-cor" onchange="calcularCustoProduto()">
-                <option value="0" data-custo="0">Selecione a cor</option>
-                ${options}
-            </select>
-        </div>
-        <div class="input-group"><input type="number" step="0.1" placeholder="Quantidade (g)" value="${qtdSeta}" class="prod-fil-qtd" oninput="calcularCustoProduto()"></div>
-    `;
-    list.appendChild(div);
-}
-
-window.calcularCustoProduto = function() {
-    let horas = parseFloat(document.getElementById('prod-horas').value) || 0;
-    let outros = parseFloat(document.getElementById('prod-outros').value) || 0;
-    let valorCobrado = parseFloat(document.getElementById('prod-cobrado').value) || 0;
-
-    let custoMaquina = horas * configs.maquina;
-    let custoMaoObra = horas * configs.maoobra;
-    
-    let custoMaterial = 0;
-    document.querySelectorAll('#filamentos-list .filamento-row').forEach(row => {
-        const selectCor = row.querySelector('.prod-fil-cor');
-        const opcaoSelecionada = selectCor.options[selectCor.selectedIndex];
-        let custoGrama = parseFloat(opcaoSelecionada.getAttribute('data-custo')) || 0;
-        let qtd = parseFloat(row.querySelector('.prod-fil-qtd').value) || 0;
-        custoMaterial += (custoGrama * qtd);
-    });
-
-    let custoTotal = custoMaterial + custoMaquina + custoMaoObra + configs.embalagem + outros;
-    let sugerido = custoTotal * (1 + configs.margem);
-    let lucro = valorCobrado - custoTotal;
-    
-    document.getElementById('prod-custo-total').value = `R$ ${custoTotal.toFixed(2)}`;
-    document.getElementById('prod-sugerido').value = `R$ ${sugerido.toFixed(2)}`;
-    
-    const lucroInput = document.getElementById('prod-lucro');
-    lucroInput.value = `R$ ${lucro.toFixed(2)}`;
-    if (lucro < 0) {
-        lucroInput.style.color = '#d32f2f'; 
+  try {
+    if (editId) {
+      await updateDoc(doc(db, 'produtos', editId), produto);
     } else {
-        lucroInput.style.color = '#2e7d32'; 
+      await addDoc(collection(db, 'produtos'), produto);
     }
 
-    return custoTotal;
-}
+    alert('Produto salvo com sucesso!');
+    limparFormulario();
+    await carregarProdutos();
+    switchTab('produtos');
+  } catch (e) {
+    console.error(e);
+    alert('Não foi possível salvar o produto. Confira a conexão e as regras do Firebase.');
+  }
+};
 
-window.limparFormulario = function() {
-    produtoEmEdicaoId = null; 
-    document.getElementById('btn-excluir').style.display = 'none';
+window.excluirProduto = async () => {
+  if (!editId || !confirm('Deseja excluir este produto?')) return;
 
-    document.getElementById('prod-nome').value = '';
-    document.getElementById('prod-codigo').value = ''; // Limpa código
-    document.getElementById('prod-tipo').value = '';   // Limpa tipo
-    document.getElementById('prod-foto').value = '';
-    document.getElementById('prod-vendidos').value = '0';
-    document.getElementById('prod-horas').value = '';
-    document.getElementById('prod-qtd').value = '';
-    document.getElementById('prod-outros').value = '';
-    document.getElementById('prod-cobrado').value = '';
-    document.getElementById('prod-sugerido').value = '';
-    document.getElementById('prod-custo-total').value = '';
-    document.getElementById('prod-lucro').value = '';
-    document.getElementById('prod-licenca').value = 'sim'; 
-    
-    const list = document.getElementById('filamentos-list');
-    list.innerHTML = '';
-    adicionarLinhaFilamento(); 
-}
+  try {
+    await deleteDoc(doc(db, 'produtos', editId));
+    limparFormulario();
+    await carregarProdutos();
+    switchTab('produtos');
+  } catch (e) {
+    alert('Erro ao excluir produto.');
+  }
+};
 
-window.editarProduto = function(id) {
-    const produto = listaDeProdutos.find(p => p.id === id);
-    if (!produto) return;
+window.filtrarProdutos = () => {
+  const term = val('search-input').toLowerCase();
+  const tipo = val('search-tipo');
 
-    produtoEmEdicaoId = id;
-    document.getElementById('btn-excluir').style.display = 'block'; 
+  const filtered = produtos
+    .filter(p =>
+      (p.nome || '').toLowerCase().includes(term) ||
+      (p.codigo || '').toLowerCase().includes(term) &&
+      (tipo === 'todos' || p.tipo === tipo)
+    )
+    .filter(p => tipo === 'todos' || p.tipo === tipo);
 
-    document.getElementById('prod-nome').value = produto.nome || '';
-    document.getElementById('prod-codigo').value = produto.codigo || ''; // Carrega código
-    document.getElementById('prod-tipo').value = produto.tipo || '';     // Carrega tipo
-    document.getElementById('prod-foto').value = produto.foto || '';
-    document.getElementById('prod-vendidos').value = produto.vendidos || 0;
-    document.getElementById('prod-horas').value = produto.horas || '';
-    document.getElementById('prod-qtd').value = produto.quantidade || '';
-    document.getElementById('prod-outros').value = produto.outros || '';
-    document.getElementById('prod-cobrado').value = produto.valorCobrado || '';
-    document.getElementById('prod-licenca').value = produto.licenca || 'sim';
+  renderProdutos(filtered);
+};
 
-    const list = document.getElementById('filamentos-list');
-    list.innerHTML = '';
+function renderProdutos(arr = produtos) {
+  const grid = document.getElementById('products-list');
+  grid.innerHTML = '';
 
-    if (produto.filamentosUsados && produto.filamentosUsados.length > 0) {
-        produto.filamentosUsados.forEach(f => {
-            adicionarLinhaFilamento(f.cor, f.quantidade);
-        });
+  if (!arr.length) {
+    grid.innerHTML = '<p class="muted">Nenhum produto encontrado.</p>';
+    return;
+  }
+
+  arr.forEach(p => {
+    const card = document.createElement('article');
+    card.className = 'product-card';
+    card.onclick = () => editarProduto(p.id);
+
+    const img = document.createElement('div');
+    img.className = 'product-image';
+
+    if (p.foto) {
+      img.style.backgroundImage = `url("${p.foto.replace(/"/g, '%22')}")`;
     } else {
-        adicionarLinhaFilamento(); 
+      img.textContent = 'Foto';
     }
 
-    calcularCustoProduto();
-    switchTab('novo');
+    const info = document.createElement('div');
+    info.className = 'product-info';
+
+    info.innerHTML = `
+      <div class="tags">
+        <span class="tag ${p.licenca === 'nao' ? 'red' : 'blue'}">
+          ${p.licenca === 'nao' ? 'Uso pessoal' : 'Venda liberada'}
+        </span>
+        ${p.codigo ? `<span class="tag">${escapeHtml(p.codigo)}</span>` : ''}
+        ${p.tipo ? `<span class="tag">${escapeHtml(p.tipo)}</span>` : ''}
+      </div>
+      <h3>${escapeHtml(p.nome || 'Sem nome')}</h3>
+      <div class="price">${money(p.valorCobrado || 0)}</div>
+      <div class="sales">${p.vendidos || 0} unidades vendidas</div>
+      <div class="muted">Produzidas: ${p.produzido ?? p.quantidade ?? 0}</div>
+      <div class="muted">Em estoque: ${totalStock(p)}</div>
+      <div class="colors">
+        ${(p.cores || []).map(c => `<span class="color-label">${escapeHtml(c)}</span>`).join('')}
+      </div>
+    `;
+
+    card.append(img, info);
+    grid.append(card);
+  });
 }
 
-window.excluirProduto = async function() {
-    if (!produtoEmEdicaoId) return;
-
-    const confirmacao = confirm("Tem certeza que deseja apagar este produto definitivamente?");
-    if (confirmacao) {
-        try {
-            await deleteDoc(doc(db, "produtos", produtoEmEdicaoId));
-            alert("Produto excluído com sucesso!");
-            limparFormulario();
-            carregarProdutos();
-            switchTab('produtos');
-        } catch (error) {
-            console.error("Erro ao excluir produto:", error);
-            alert("Erro ao excluir.");
-        }
-    }
+function totalStock(p) {
+  if (p.estoquePorCor && Object.keys(p.estoquePorCor).length) {
+    return Object.values(p.estoquePorCor).reduce((a, b) => a + (+b || 0), 0);
+  }
+  return +p.quantidade || 0;
 }
 
-window.salvarProduto = async function() {
-    let filamentosUsados = [];
-    document.querySelectorAll('#filamentos-list .filamento-row').forEach(row => {
-        const selectCor = row.querySelector('.prod-fil-cor');
-        const opcaoSelecionada = selectCor.options[selectCor.selectedIndex];
-        
-        let nomeCor = selectCor.value; 
-        let custoGrama = parseFloat(opcaoSelecionada.getAttribute('data-custo')) || 0;
-        let qtd = parseFloat(row.querySelector('.prod-fil-qtd').value) || 0;
-        
-        if (nomeCor !== "0" && qtd > 0) {
-            filamentosUsados.push({ cor: nomeCor, custoGrama: custoGrama, quantidade: qtd });
-        }
+function renderEstoque() {
+  const body = document.getElementById('stock-list');
+  body.innerHTML = '';
+
+  produtos.forEach(p => {
+    const colors = p.cores?.length ? p.cores : ['Sem cor'];
+
+    colors.forEach((c, i) => {
+      let qty = p.estoquePorCor?.[c];
+
+      if (qty == null) {
+        qty = i === 0 ? (+p.quantidade || 0) : 0;
+      }
+
+      const tr = document.createElement('tr');
+
+      tr.innerHTML = `
+        <td>${escapeHtml(p.nome)}</td>
+        <td>${escapeHtml(c)}</td>
+        <td><strong>${qty}</strong></td>
+        <td><input type="number" min="1" step="1" class="stock-entry" aria-label="Quantidade produzida para entrada"></td>
+        <td><button class="table-btn" data-id="${p.id}" data-color="${escapeAttr(c)}">Adicionar entrada</button></td>
+      `;
+
+      tr.querySelector('button').onclick = () =>
+        entradaEstoque(p.id, c, tr.querySelector('input').value);
+
+      body.append(tr);
+    });
+  });
+
+  if (!body.children.length) {
+    body.innerHTML = '<tr><td colspan="5">Nenhum produto cadastrado.</td></tr>';
+  }
+}
+
+async function entradaEstoque(id, cor, quantidade) {
+  const n = Math.floor(+quantidade);
+
+  if (!Number.isInteger(n) || n < 1) {
+    alert('Informe uma quantidade de entrada maior que zero.');
+    return;
+  }
+
+  try {
+    const ref = doc(db, 'produtos', id);
+
+    await runTransaction(db, async tx => {
+      const snap = await tx.get(ref);
+
+      if (!snap.exists()) throw Error('Produto não encontrado');
+
+      const p = snap.data();
+      const stock = { ...(p.estoquePorCor || {}) };
+
+      stock[cor] = (
+        stock[cor] == null
+          ? (cor === 'Sem cor' ? (+p.quantidade || 0) : 0)
+          : +stock[cor]
+      ) + n;
+
+      tx.update(ref, {
+        estoquePorCor: stock,
+        produzido: (+p.produzido || +p.quantidade || 0) + n,
+        quantidade: Object.values(stock).reduce((a, b) => a + (+b || 0), 0)
+      });
     });
 
-    const produto = {
-        nome: document.getElementById('prod-nome').value,
-        codigo: document.getElementById('prod-codigo').value, // Salva código
-        tipo: document.getElementById('prod-tipo').value,     // Salva tipo
-        foto: document.getElementById('prod-foto').value,
-        vendidos: parseInt(document.getElementById('prod-vendidos').value) || 0,
-        horas: parseFloat(document.getElementById('prod-horas').value) || 0,
-        quantidade: parseInt(document.getElementById('prod-qtd').value) || 0,
-        outros: parseFloat(document.getElementById('prod-outros').value) || 0,
-        valorCobrado: parseFloat(document.getElementById('prod-cobrado').value) || 0,
-        licenca: document.getElementById('prod-licenca').value, 
-        custoCalculado: calcularCustoProduto(),
-        filamentosUsados: filamentosUsados 
-    };
-
-    try {
-        if (produtoEmEdicaoId) {
-            await updateDoc(doc(db, "produtos", produtoEmEdicaoId), produto);
-            alert("Produto atualizado com sucesso!");
-        } else {
-            await addDoc(collection(db, "produtos"), produto);
-            alert("Produto novo salvo com sucesso!");
-        }
-        
-        limparFormulario();
-        carregarProdutos();
-        switchTab('produtos');
-        
-    } catch (e) {
-        console.error("Erro ao salvar produto: ", e);
-    }
+    await carregarProdutos();
+    renderEstoque();
+    alert('Entrada registrada. Estoque atualizado.');
+  } catch (e) {
+    console.error(e);
+    alert('Não foi possível atualizar o estoque.');
+  }
 }
 
-// NOVA FUNÇÃO: Renderizar Grid de Produtos a partir de um Array (útil para filtro)
-window.renderizarProdutosLista = function(arrayDeProdutos) {
-    const grid = document.getElementById('products-list');
-    grid.innerHTML = '';
-    
-    if(arrayDeProdutos.length === 0) {
-        grid.innerHTML = '<p style="color: #fff; padding: 20px;">Nenhum produto encontrado com este filtro.</p>';
-        return;
-    }
+function preencherProdutosVenda() {
+  const s = document.getElementById('sale-product');
+  const old = s.value;
 
-    arrayDeProdutos.forEach((p) => {
-        let bgStyle = p.foto ? `background-image: url('${p.foto}'); background-color: transparent;` : '';
-        let fotoContent = p.foto ? '' : 'Foto';
-        
-        let tagLicencaHTML = '';
-        if (p.licenca === 'nao') {
-            tagLicencaHTML = '<span class="tag-licenca tag-sem-licenca"><i class="fas fa-ban"></i> Uso Pessoal</span>';
-        } else {
-            tagLicencaHTML = '<span class="tag-licenca tag-comercial"><i class="fas fa-check-circle"></i> Venda Liberada</span>';
-        }
-        
-        // Tags extras de código e tipo
-        let tagCodigo = p.codigo ? `<span class="tag-licenca tag-info">${p.codigo}</span>` : '';
-        let tagTipo = p.tipo ? `<span class="tag-licenca tag-info">${p.tipo}</span>` : '';
-        
-        grid.innerHTML += `
-            <div class="product-card" onclick="editarProduto('${p.id}')" style="cursor: pointer;" title="Clique para editar">
-                <div class="product-image" style="${bgStyle}">${fotoContent}</div>
-                <div class="product-info">
-                    <div style="margin-bottom: 5px;">${tagLicencaHTML} ${tagCodigo} ${tagTipo}</div>
-                    <h3>${p.nome || 'Sem Nome'}</h3>
-                    <div class="price">R$ ${(p.valorCobrado || 0).toFixed(2)}</div>
-                    <div class="sales">${p.vendidos} Quantidades Vendidas</div>
-                </div>
-            </div>
-        `;
-    });
+  s.innerHTML = '<option value="">Selecione o produto</option>';
+
+  produtos.forEach(p => {
+    const o = document.createElement('option');
+    o.value = p.id;
+    o.textContent = p.nome;
+    s.append(o);
+  });
+
+  if (produtos.some(p => p.id === old)) s.value = old;
+
+  atualizarCoresVenda();
 }
 
-// NOVA FUNÇÃO: Disparada ao digitar na busca ou alterar o select de tipo
-// NOVA FUNÇÃO ATUALIZADA: Filtro + Ordenação por Preço e Lucro
-// NOVA FUNÇÃO ATUALIZADA: Filtro + Ordenação por Preço, Lucro e Código
-window.filtrarProdutos = function() {
-    const termoBusca = document.getElementById('search-input').value.toLowerCase();
-    const tipoFiltro = document.getElementById('search-tipo').value;
-    const ordenacao = document.getElementById('sort-tipo').value; 
+window.atualizarCoresVenda = () => {
+  const p = produtos.find(x => x.id === val('sale-product'));
+  const s = document.getElementById('sale-color');
 
-    // 1. Primeiro filtra quem deve aparecer (por texto ou tipo)
-    let filtrados = listaDeProdutos.filter(p => {
-        const nomeUpper = (p.nome || '').toLowerCase();
-        const codigoUpper = (p.codigo || '').toLowerCase();
-        
-        const matchTexto = nomeUpper.includes(termoBusca) || codigoUpper.includes(termoBusca);
-        const matchTipo = (tipoFiltro === 'todos') || (p.tipo === tipoFiltro);
-        
-        return matchTexto && matchTipo;
+  s.innerHTML = '';
+
+  (p?.cores?.length ? p.cores : ['Sem cor']).forEach(c => {
+    const o = document.createElement('option');
+    o.value = c;
+    o.textContent =
+      `${c} — disponível: ${p?.estoquePorCor?.[c] ?? (c === 'Sem cor' ? p?.quantidade || 0 : 0)}`;
+    s.append(o);
+  });
+
+  document.getElementById('sale-price').value = p?.valorCobrado ?? '';
+};
+
+window.registrarVenda = async () => {
+  const id = val('sale-product');
+  const cor = val('sale-color');
+  const q = Math.floor(+val('sale-quantity'));
+  const preco = +val('sale-price');
+  const nota = val('sale-note').trim();
+
+  if (!id || !cor || q < 1 || !Number.isInteger(q) || preco < 0) {
+    alert('Selecione produto e cor, e informe quantidade e preço válidos.');
+    return;
+  }
+
+  const ref = doc(db, 'produtos', id);
+
+  try {
+    let nomeProduto = '';
+
+    await runTransaction(db, async tx => {
+      const snap = await tx.get(ref);
+
+      if (!snap.exists()) throw Error('Produto não encontrado');
+
+      const p = snap.data();
+      nomeProduto = p.nome;
+
+      const stock = { ...(p.estoquePorCor || {}) };
+      let disponivel = stock[cor];
+
+      if (disponivel == null) {
+        disponivel = cor === 'Sem cor' ? (+p.quantidade || 0) : 0;
+      }
+
+      if (disponivel < q) {
+        throw Error(`Estoque insuficiente. Disponível: ${disponivel}`);
+      }
+
+      stock[cor] = disponivel - q;
+
+      tx.update(ref, {
+        estoquePorCor: stock,
+        quantidade: Object.values(stock).reduce((a, b) => a + (+b || 0), 0),
+        vendidos: (+p.vendidos || 0) + q
+      });
     });
 
-    // 2. Depois aplica a regra de ordenação na lista já filtrada
-    if (ordenacao === 'preco-maior') {
-        filtrados.sort((a, b) => (b.valorCobrado || 0) - (a.valorCobrado || 0));
-    } 
-    else if (ordenacao === 'preco-menor') {
-        filtrados.sort((a, b) => (a.valorCobrado || 0) - (b.valorCobrado || 0));
-    } 
-    else if (ordenacao === 'lucro-maior') {
-        filtrados.sort((a, b) => {
-            const lucroA = (a.valorCobrado || 0) - (a.custoCalculado || 0);
-            const lucroB = (b.valorCobrado || 0) - (b.custoCalculado || 0);
-            return lucroB - lucroA;
-        });
-    }
-    // NOVA REGRA: Ordenar por código (Maior para Menor / Z a A)
-    else if (ordenacao === 'codigo-maior') {
-        filtrados.sort((a, b) => {
-            const codA = (a.codigo || '').toString().toLowerCase();
-            const codB = (b.codigo || '').toString().toLowerCase();
-            // localeCompare é ótimo para comparar letras e números corretamente
-            return codB.localeCompare(codA, undefined, { numeric: true, sensitivity: 'base' });
-        });
-    }
+    await addDoc(collection(db, 'vendas'), {
+      produtoId: id,
+      produto: nomeProduto,
+      cor,
+      quantidade: q,
+      valorUnitario: preco,
+      total: q * preco,
+      observacao: nota,
+      data: Date.now()
+    });
 
-    // 3. Renderiza a lista na tela com o filtro e a ordem aplicados
-    renderizarProdutosLista(filtrados);
+    document.getElementById('sale-quantity').value = 1;
+    document.getElementById('sale-note').value = '';
+
+    await carregarProdutos();
+    preencherProdutosVenda();
+    await renderHistorico();
+
+    alert('Venda registrada e estoque reduzido com sucesso.');
+  } catch (e) {
+    console.error(e);
+    alert(
+      e.message?.startsWith('Estoque insuficiente')
+        ? e.message
+        : 'Não foi possível registrar a venda. Confira sua conexão e as regras do Firebase.'
+    );
+  }
+};
+
+async function renderHistorico() {
+  const body = document.getElementById('sales-history');
+  body.innerHTML = '<tr><td colspan="6">Carregando...</td></tr>';
+
+  try {
+    const snap = await getDocs(collection(db, 'vendas'));
+
+    vendas = snap.docs
+      .map(d => ({ id: d.id, ...d.data() }))
+      .sort((a, b) => (b.data || 0) - (a.data || 0));
+
+    body.innerHTML = '';
+
+    vendas.forEach(v => {
+      const tr = document.createElement('tr');
+
+      tr.innerHTML = `
+        <td>${v.data ? new Date(v.data).toLocaleString('pt-BR') : '—'}</td>
+        <td>${escapeHtml(v.produto || '')}</td>
+        <td>${escapeHtml(v.cor || '')}</td>
+        <td>${v.quantidade || 0}</td>
+        <td>${money(v.total || 0)}</td>
+        <td>${escapeHtml(v.observacao || '')}</td>
+      `;
+
+      body.append(tr);
+    });
+
+    if (!body.children.length) {
+      body.innerHTML = '<tr><td colspan="6">Nenhuma venda registrada.</td></tr>';
+    }
+  } catch (e) {
+    body.innerHTML = '<tr><td colspan="6">Não foi possível carregar o histórico.</td></tr>';
+    console.error(e);
+  }
 }
+
+window.salvarConfiguracoes = async () => {
+  configs = {
+    energia: +val('cfg-energia'),
+    consumo: +val('cfg-consumo'),
+    maquina: +val('cfg-maquina'),
+    maoobra: +val('cfg-maoobra'),
+    margem: +val('cfg-margem'),
+    embalagem: +val('cfg-embalagem')
+  };
+
+  materiais = [...document.querySelectorAll('.material-row')]
+    .map(r => ({
+      cor: r.querySelector('.mat-cor').value.trim(),
+      custoGrama: +r.querySelector('.mat-valor').value
+    }))
+    .filter(m => m.cor);
+
+  tiposProduto = [...document.querySelectorAll('.tipo-row')]
+    .map(r => r.querySelector('.tipo-nome').value.trim())
+    .filter(Boolean);
+
+  try {
+    await setDoc(doc(db, 'sistema', 'configuracoes'), {
+      configs, materiais, tiposProduto
+    });
+
+    atualizarSelectsTipos();
+    alert('Configurações salvas.');
+  } catch (e) {
+    alert('Erro ao salvar configurações.');
+  }
+};
+
+function atualizarSelectsTipos() {
+  const p = document.getElementById('prod-tipo');
+  const s = document.getElementById('search-tipo');
+  const pv = p.value;
+  const sv = s.value;
+
+  p.innerHTML = '<option value="">Selecione o tipo</option>';
+  s.innerHTML = '<option value="todos">Todos os tipos</option>';
+
+  tiposProduto.forEach(t => {
+    p.add(new Option(t, t));
+    s.add(new Option(t, t));
+  });
+
+  p.value = pv;
+  s.value = sv || 'todos';
+}
+
 async function carregarProdutos() {
-    const grid = document.getElementById('products-list');
-    grid.innerHTML = 'A carregar...';
-    
-    try {
-        const querySnapshot = await getDocs(collection(db, "produtos"));
-        listaDeProdutos = []; 
-        
-        querySnapshot.forEach((doc) => {
-            let p = doc.data();
-            p.id = doc.id; 
-            listaDeProdutos.push(p); 
-        });
-
-        // Limpa inputs de pesquisa ao recarregar a lista geral
-        document.getElementById('search-input').value = '';
-        document.getElementById('search-tipo').value = 'todos';
-        document.getElementById('sort-tipo').value = 'padrao';
-        
-        renderizarProdutosLista(listaDeProdutos);
-
-    } catch (e) {
-        console.error("Erro ao carregar produtos:", e);
-        grid.innerHTML = 'Erro ao carregar os produtos.';
-    }
+  try {
+    const snap = await getDocs(collection(db, 'produtos'));
+    produtos = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderProdutos();
+    renderEstoque();
+  } catch (e) {
+    console.error(e);
+    document.getElementById('products-list').textContent = 'Erro ao carregar produtos.';
+  }
 }
 
 async function initConfiguracoes() {
-    try {
-        const docRef = doc(db, "sistema", "configuracoes");
-        const docSnap = await getDoc(docRef);
-        
-        if (docSnap.exists()) {
-            const data = docSnap.data();
-            if(data.configs) configs = data.configs;
-            if(data.materiais) materiais = data.materiais;
-            if(data.tiposProduto) tiposProduto = data.tiposProduto; // Carrega os Tipos
-            
-            document.getElementById('cfg-energia').value = configs.energia;
-            document.getElementById('cfg-consumo').value = configs.consumo;
-            document.getElementById('cfg-maquina').value = configs.maquina;
-            document.getElementById('cfg-maoobra').value = configs.maoobra;
-            document.getElementById('cfg-margem').value = configs.margem;
-            document.getElementById('cfg-embalagem').value = configs.embalagem;
+  try {
+    const snap = await getDoc(doc(db, 'sistema', 'configuracoes'));
 
-            materiais.forEach(m => adicionarLinhaMaterial(m.cor, m.custoGrama));
-            
-            if(tiposProduto && tiposProduto.length > 0) {
-                tiposProduto.forEach(t => adicionarLinhaTipo(t));
-            } else {
-                adicionarLinhaTipo(); 
-            }
-        } else {
-            adicionarLinhaMaterial(); 
-            adicionarLinhaTipo();
-        }
-        atualizarSelectsTipos(); // Preenche os dropdowns da interface
-    } catch (error) {
-        console.error("Erro ao carregar as configurações:", error);
+    if (snap.exists()) {
+      const d = snap.data();
+      configs = { ...configs, ...d.configs };
+      materiais = d.materiais || [];
+      tiposProduto = d.tiposProduto || [];
     }
+
+    Object.entries({
+      energia: 'cfg-energia',
+      consumo: 'cfg-consumo',
+      maquina: 'cfg-maquina',
+      maoobra: 'cfg-maoobra',
+      margem: 'cfg-margem',
+      embalagem: 'cfg-embalagem'
+    }).forEach(([k, id]) => {
+      document.getElementById(id).value = configs[k];
+    });
+
+    materiais.forEach(m => adicionarLinhaMaterial(m.cor, m.custoGrama));
+    if (!materiais.length) adicionarLinhaMaterial();
+
+    tiposProduto.forEach(t => adicionarLinhaTipo(t));
+    if (!tiposProduto.length) adicionarLinhaTipo();
+
+    atualizarSelectsTipos();
+    limparFormulario();
+  } catch (e) {
+    console.error(e);
+  }
 }
 
-// ==========================================
-// SISTEMA DE LOGIN E SEGURANÇA
-// ==========================================
+window.fazerLogin = async () => {
+  try {
+    await signInWithEmailAndPassword(
+      auth,
+      val('login-email'),
+      val('login-senha')
+    );
 
-// Monitora se o usuário está logado ou não
-onAuthStateChanged(auth, (user) => {
-    if (user) {
-        // Usuário logado! Esconde o login e mostra o sistema
-        document.getElementById('login-screen').style.display = 'none';
-        document.getElementById('main-app').style.display = 'block';
-        
-        // Carrega os dados agora que temos permissão
-        initConfiguracoes();
-        carregarProdutos();
-    } else {
-        // Não está logado. Mostra o login e esconde o sistema
-        document.getElementById('login-screen').style.display = 'flex';
-        document.getElementById('main-app').style.display = 'none';
-    }
+    document.getElementById('login-erro').hidden = true;
+  } catch (e) {
+    document.getElementById('login-erro').hidden = false;
+  }
+};
+
+onAuthStateChanged(auth, async user => {
+  document.getElementById('login-screen').hidden = !!user;
+  document.getElementById('main-app').hidden = !user;
+
+  if (user) {
+    await initConfiguracoes();
+    await carregarProdutos();
+  }
 });
 
-// Função ativada pelo botão "Entrar"
-window.fazerLogin = async function() {
-    const email = document.getElementById('login-email').value;
-    const senha = document.getElementById('login-senha').value;
-    const erroMsg = document.getElementById('login-erro');
-    
-    try {
-        await signInWithEmailAndPassword(auth, email, senha);
-        erroMsg.style.display = 'none';
-    } catch (error) {
-        console.error("Erro no login", error);
-        erroMsg.style.display = 'block';
-    }
+function val(id) {
+  return document.getElementById(id).value;
 }
 
-// Opcional: Se quiser adicionar um botão de Sair depois
-window.fazerLogout = function() {
-    signOut(auth);
+function money(n) {
+  return Number(n || 0).toLocaleString('pt-BR', {
+    style: 'currency',
+    currency: 'BRL'
+  });
+}
+
+function escapeHtml(s = '') {
+  return String(s).replace(/[&<>"']/g, c => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  }[c]));
+}
+
+function escapeAttr(s = '') {
+  return escapeHtml(s);
 }
